@@ -13,17 +13,20 @@ import sys
 import time
 import bob
 import argparse
-from .. import ml
+from ... import ml
 
 def main():
   """Main method"""
 
+  basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
+
+  INPUT_DIR = os.path.join(basedir, 'clustered')
+  OUTPUT_DIR = os.path.join(basedir, 'window_based')
+
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
-  parser.add_argument('outputdir', metavar='DIR', type=str,
-      help='Base directory that will be used to save the results. The given value will be interpolated with time.strftime and then, os.environ (in this order), so you can include %%()s strings with that to make up the final output directory.')
-  parser.add_argument('inputdir', metavar='DIR', type=str, nargs='+',
-      help='Base directories containing the scores to be loaded. Final scores will be generated from the input directories and concatenated column-wise to form the final training matrix')
+  parser.add_argument('-d', '--output-dir', dest='outputdir', metavar='DIR', type=str, default=OUTPUT_DIR, help='Base directory that will be used to save the results. The given value will be interpolated with time.strftime and then, os.environ (in this order), so you can include %%()s strings with that to make up the final output directory (defaults to "%(default)s").')
+  parser.add_argument('-v', '--input-dir', dest='inputdir', metavar='DIR', type=str, default=INPUT_DIR, help='Base directory containing the scores to be loaded. Final scores will be generated from the input directories and concatenated column-wise to form the final training matrix (defaults to "%(default)s").')
   parser.add_argument('-b', '--batch-size', metavar='INT', type=int,
       dest='batch', default=200, help='The number of samples per training iteration. Good values are greater than 100. Defaults to %(default)s')
   parser.add_argument('-e', '--epoch', metavar='INT', type=int,
@@ -36,15 +39,8 @@ def main():
       dest='noimprov', default=0, help='The maximum number of iterations to wait for in case no improvements happen in the development set average RMSE. If that number of iterations is reached, the training is stopped. Values in the order of 10-20%% of the maximum number of iterations should be a reasonable default. If set to zero, do not consider this stop criteria. Defaults to %(default)s')
   parser.add_argument('-f', '--overwrite', action='store_true', 
       dest='overwrite', default=False, help='If set and the destination directory exists, overwrite the results contained there')
-  parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
+  parser.add_argument('-V', '--verbose', action='store_true', dest='verbose',
       default=False, help='Increases this script verbosity')
-
-  # featpack functionality
-  protocol_choices = bob.db.replay.Database().protocols()
-
-  parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
-      dest='protocol', default='grandtest', help='Specific protocol to use for training and testing the detector (defaults to "%(default)s)")', 
-      choices=protocol_choices)
 
   support_choices = ('fixed', 'hand', 'hand+fixed')
 
@@ -53,15 +49,14 @@ def main():
 
   args = parser.parse_args()
 
-  for k in args.inputdir:
-    if not os.path.exists(k):
-      parser.error("input directory `%s' does not exist" % k)
+  if not os.path.exists(args.inputdir):
+    parser.error("input directory `%s' does not exist" % k)
 
   if args.support == 'hand+fixed': args.support = ('hand', 'fixed')
 
   use_outputdir = time.strftime(args.outputdir) #interpolate time
   use_outputdir = use_outputdir % os.environ #interpolate environment
-  if os.path.exists(use_outputdir): 
+  if os.path.exists(use_outputdir):
     if not args.overwrite:
       parser.error("output directory '%s' exists and the overwrite flag was not set" % use_outputdir)
   else:
@@ -72,15 +67,14 @@ def main():
   # create a link to the data directory at the output directory so we keep
   # track of where the data came from.
   use_inputdir = []
-  for i, k in enumerate(args.inputdir):
-    link = os.path.join(use_outputdir, "dataset_%d" % i)
-    if os.path.lexists(link): os.unlink(link)
-    if args.verbose: print "Creating link to data directory %d..." % i
-    os.symlink(os.path.realpath(k), link)
-    use_inputdir.append(link)
+  link = os.path.join(use_outputdir, "dataset")
+  if os.path.lexists(link): os.unlink(link)
+  if args.verbose: print "Creating link to data directory..."
+  os.symlink(os.path.realpath(args.inputdir), link)
+  use_inputdir.append(link)
 
   if args.verbose: print "Loading input files..."
-  data = ml.pack.replay(use_inputdir, args.protocol, args.support)
+  data = ml.pack.replay(use_inputdir, 'print', args.support)
   if args.verbose:
     print "Train/real  :", len(data['train']['real'])
     print "Train/attack:", len(data['train']['attack'])
@@ -105,7 +99,7 @@ def main():
   paramfile.write('hidden neurons: %d\n' % args.nhidden)
   paramfile.write('maximum iterations: %d\n' % args.maxiter)
   paramfile.write('command line: %s\n' % ' '.join(sys.argv))
-  paramfile.write('protocol: %s\n' % args.protocol)
+  paramfile.write('protocol: %s\n' % 'print')
   write_support = args.support
   if isinstance(write_support, (tuple,list)):
     write_support = '+'.join(args.support)

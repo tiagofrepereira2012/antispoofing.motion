@@ -71,20 +71,34 @@ Training an MLP
 
 Training MLPs to perform discrimination should go like this::
 
-  $ ./bin/rproptrain.py --verbose --epoch=10000 --batch-size=500 --no-improvements=1000000 --maximum-iterations=10000000 features/NoLightNormalization/KeyLemonFaceDetector/5features/window_20/overlap_19/full/print/hand mlp-results/NoLightNormalization/KeyLemonFaceDetector/5features/window_20/overlap_19/full/print/hand/rprop-trained
+  $ ./bin/rproptrain.py --verbose --epoch=10000 --batch-size=500 --no-improvements=1000000 --maximum-iterations=10000000
 
-This will create a new MLP and train it using the input data (first directory).
-The resulting MLP will be saved in the output directory (second directory). The
-resulting directory will also contain performance analysis plots.
+This will create a new MLP and train it using the data produced by the
+"clustering" step. The training can take anywhere from 20 to 30 minutes (or
+even more), depending on your machine speed. You should see some debugging
+output with the partial results as the training go along::
 
-Running the Performance Analysis
---------------------------------
+  ...
+  iteration: RMSE:real/RMSE:attack (EER:%) ( train | devel )
+  0: 9.1601e-01/1.0962e+00 (60.34%) | 9.1466e-01/1.0972e+00 (58.71%)
+  0: Saving best network so far with average devel. RMSE = 1.0059e+00
+  0: New valley stop threshold set to 1.2574e+00
+  10000: 5.6706e-01/4.2730e-01 (8.29%) | 7.6343e-01/4.3836e-01 (11.90%)
+  10000: Saving best network so far with average devel. RMSE = 6.0089e-01
+  10000: New valley stop threshold set to 7.5112e-01
+  20000: 5.6752e-01/4.2222e-01 (8.21%) | 7.6444e-01/4.3515e-01 (12.07%)
+  20000: Saving best network so far with average devel. RMSE = 5.9979e-01
+  20000: New valley stop threshold set to 7.4974e-01
 
-It is possible to re-run the performance analysis on a directory containing a
-trained MLP by using the `rpropanalyze.py` script. You just need to pass it the
-directory containing the trained neural network::
+The resulting MLP will be saved in the default output directory called
+``window_based``. The resulting directory will also contain performance
+analysis plots. The results derived after this step are equivalent to the
+results shown at Table 2 and Figure 3 at the paper.
 
-  $ ./bin/rpropanalyze.py --verbose mlp-results/NoLightNormalization/KeyLemonFaceDetector/5features/window_20/overlap_19/full/print/hand/rprop-trained
+To get results for specific supports as shown at the first two lines of Table
+2, just select the support using the ``--support=hand`` or ``--support=fixed``
+as a flag to ``rproptrain.py``. At this point, it is adviseable to use
+different output directories using the ``--output-dir`` flag as well.
 
 Running the Time Analysis
 -------------------------
@@ -93,7 +107,7 @@ The time analysis is the end of the processing chain, it fuses the scores of
 instantaneous MLP outputs to give out a better estimation of attacks and
 real-accesses. To use it::
 
-  $ ./bin/time_analysis.py mlp-results/NoLightNormalization/KeyLemonFaceDetector/5features/window_40/overlap_39/face_reminder+eyes+background/print/hand+fixed/run-6133391-7
+  $ ./bin/time_analysis.py window_based
 
 Omitted parameters will be guessed from the input directory name, if they can,
 otherwise an error is raised. To avoid the error, you may add options to

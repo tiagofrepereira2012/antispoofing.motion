@@ -7,9 +7,6 @@
 """
 
 from . import rprop
-from . import lda
-from . import pca
-from . import norm
 from . import perf
 from . import time
 from . import pack

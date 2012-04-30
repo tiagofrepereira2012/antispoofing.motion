@@ -22,8 +22,6 @@ def main():
   INPUT_DIR = os.path.join(basedir, 'database')
   OUTPUT_DIR = os.path.join(basedir, 'framediff')
 
-  protocols = bob.db.replay.Database().protocols()
-
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument('-v', '--input-dir', metavar='DIR', type=str,
