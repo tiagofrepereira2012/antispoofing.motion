@@ -27,11 +27,11 @@ setup(
 
     entry_points={
       'console_scripts': [
-        'framediff.py = antispoofing.motion.script:main',
-        'diffcluster.py = antispoofing.motion.diffcluster:main',
-        'rproptrain.py = antispoofing.motion.rproptrain:main',
-        'rpropanalyze.py = antispoofing.motion.rpropanalyze:main',
-        'time_analysis.py = antispoofing.motion.time_analysis:main',
+        'framediff.py = antispoofing.motion.script.framediff:main',
+        'diffcluster.py = antispoofing.motion.script.diffcluster:main',
+        'rproptrain.py = antispoofing.motion.script.rproptrain:main',
+        'rpropanalyze.py = antispoofing.motion.script.rpropanalyze:main',
+        'time_analysis.py = antispoofing.motion.script.time_analysis:main',
         ],
       },
 

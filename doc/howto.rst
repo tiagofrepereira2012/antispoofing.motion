@@ -20,9 +20,21 @@ results obtained at::
   }
 
 It is assumed you have followed the installation instructions for the package,
-as described in the ``README.txt`` file located in the root of the package.
-After running the ``buildout`` command, you should have all required utilities
-sitting inside the ``bin`` directory.
+as described in the ``README.txt`` file located in the root of the package and
+got this package installed and the PRINT-ATTACK database downloaded and
+uncompressed in a directory.  After running the ``buildout`` command, you
+should have all required utilities sitting inside the ``bin`` directory. We
+expect that the video files downloaded for the PRINT-ATTACK database are
+installed in a sub-directory called ``database`` at the root of the package.
+You can use a link to the location of the database files, if you don't want to
+have the database installed on the root of this package::
+
+  $ ln -s /path/where/you/installed/the/print-attack-database database
+
+If you don't want to create a link, use the ``--input-dir`` flag to specify
+the root directory containing the database files. That would be the directory
+that *contains* the sub-directories ``train``, ``test``, ``devel`` and
+``face-locations``.
 
 Calculate Frame Differences
 ---------------------------
@@ -36,7 +48,7 @@ all video sequences to be analyzed).
 To execute the frame difference process to all videos in the PRINT-ATTACK
 database, just execute::
 
-  $ ./bin/framediff.py -p print -f <face-locations-dir>
+  $ ./bin/framediff.py
 
 There are more options for the `framediff.py` script you can use. Just type
 `--help` at the command line for instructions.
@@ -49,7 +61,10 @@ quantities that are required for the detection process. To reproduce the
 results in the paper, we accumulate the results in windows of 20 frames,
 without overlap::
 
-  $ ./bin/diffcluster.py -v <framediff-basedir> --window-size=20
+  $ ./bin/diffcluster.py
+
+There are more options for the `diffcluster.py` script you can use. Just type
+`--help` at the command line for instructions.
 
 Training an MLP
 ---------------
