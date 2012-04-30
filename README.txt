@@ -18,6 +18,11 @@ The data used in the paper is publicly available and should be downloaded and
 installed **prior** to try using the programs described in this package. Visit
 `https://www.idiap.ch/dataset/printattack`_ for more information.
 
+To run the code in this package, you will also need `Bob, an open-source
+toolkit for Signal Processing and Machine Learning
+<http://idiap.github.com/bob>`_. The code has been tested to work with Bob
+1.0.x.
+
 Installation
 ------------
 
@@ -67,7 +72,7 @@ Usage
 -----
 
 Please refer to the documentation inside the ``doc`` directory of this package
-for further instructions on the functionality available inside this package.
+for further instructions on the functionality available.
 
 Reference
 ---------
