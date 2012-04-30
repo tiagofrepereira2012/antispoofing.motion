@@ -108,7 +108,7 @@ def main():
   del paramfile
   
   if args.verbose: print "Saving MLP..."
-  mlpfile = bob.io.HDF5File(os.path.join(use_outputdir, 'mlp.hdf5'),'t')
+  mlpfile = bob.io.HDF5File(os.path.join(use_outputdir, 'mlp.hdf5'),'w')
   mlp.save(mlpfile)
   del mlpfile
 
