@@ -15,7 +15,7 @@ setup(
     url='http://github.com/bioidiap/antispoofing.motion',
     license='LICENSE.txt',
     author_email='Andre Anjos <andre.anjos@idiap.ch>',
-    #long_description=open('doc/long-description.rst').read(),
+    long_description=open('doc/howto.rst').read(),
 
     # This line is required for any distutils based packaging.
     packages=find_packages(),
