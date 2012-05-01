@@ -30,7 +30,6 @@ setup(
         'framediff.py = antispoofing.motion.script.framediff:main',
         'diffcluster.py = antispoofing.motion.script.diffcluster:main',
         'rproptrain.py = antispoofing.motion.script.rproptrain:main',
-        'rpropanalyze.py = antispoofing.motion.script.rpropanalyze:main',
         'time_analysis.py = antispoofing.motion.script.time_analysis:main',
         ],
       },

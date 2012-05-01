@@ -11,42 +11,7 @@ import os
 import sys
 import bob
 import argparse
-from .. import ml
-import re
-
-def guess(args):
-  """Guessses omitted parameters, given the input directory. This is based on
-  the availability of the default organization structure for the tests."""
-
-  s = re.match(r'^(?P<prefix>.+)/window_(?P<ws>\d+)/overlap_(?P<ol>\d+)/(?P<roi>[^/]+)/(?P<pr>[^/]+)/(?P<su>[^/]+)/(?P<run>.+)$', args.inputdir)
-  if not s: 
-    raise RuntimeError, 'Cannot guess variables from %s' % args.inputdir
-
-  d = s.groupdict()
-
-  # all objects supposed to be set and that have a value of None are filled.
-  if args.windowsize is None: 
-    args.windowsize = int(d['ws'])
-    if args.verbose: print "Setting omitted window-size to '%d'" % \
-        args.windowsize
-  if args.overlap is None: 
-    args.overlap = int(d['ol'])
-    if args.verbose: print "Setting omitted overlap to '%d'" % args.overlap
-  if args.protocol is None: 
-    args.protocol = d['pr']
-    if args.verbose: print "Setting omitted protocol to '%s'" % args.protocol
-  if args.support is None: 
-    args.support = d['su']
-    if args.verbose: print "Setting omitted support to '%s'" % args.support
-  if args.featdir is None:
-    f = ['features']
-    f.extend(d['prefix'].split(os.sep)[1:])
-    f.append('window_%d' % args.windowsize)
-    f.append('overlap_%d' % args.overlap)
-    f.append(d['roi'])
-    args.featdir = os.path.join(*f)
-    if args.verbose: print "Setting omitted feature directory to '%s'" % \
-        args.featdir
+from ... import ml
 
 def write_table(title, analyzer, file, args, protocol, support):
 
@@ -73,29 +38,30 @@ def write_table(title, analyzer, file, args, protocol, support):
 
 def main():
 
-  protocol_choices = bob.db.replay.Database().protocols()
   support_choices = ('hand', 'fixed', 'hand+fixed')
+
+  basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
+
+  FEATURE_DIR = os.path.join(basedir, 'clustered')
+  NETWORK_DIR = os.path.join(basedir, 'window_based')
 
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
 
-  parser.add_argument('inputdir', metavar='DIR', type=str,
-      help='directory containing the files to be analyzed - this is the directory containing the mlp machine and the "datasets" link')
+  parser.add_argument('-n', '--network-dir', metavar='DIR', type=str,
+      dest='inputdir', default=NETWORK_DIR, help='directory containing the files to be analyzed - this is the directory containing the mlp machine and the "dataset" link')
 
-  parser.add_argument('-f', '--featdir', metavar='DIR', type=str,
-      default=None, help='directory containing the per-client features - if not given, guessed from the input directory')
-
-  parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
-      dest='protocol', default=None, help='if set, limit the performance analysis to a specific protocol - if not given, guessed from the input directory')
+  parser.add_argument('-f', '--feature-dir', metavar='DIR', type=str,
+      dest='featdir', default=FEATURE_DIR, help='directory containing the per-client features - if not given, guessed from the input directory')
 
   parser.add_argument('-s', '--support', metavar='SUPPORT', type=str,
-      default=None, dest='support', help='if set, limit performance analysis to a specific support - if not given, guessed from the input directory')
+      default='hand+fixed', dest='support', help='if set, limit performance analysis to a specific support - if not given, guessed from the input directory')
 
   parser.add_argument('-w', '--windowsize', metavar='INT', type=int,
-      default=None, help='size of the window used when generating the input data - this variable is used to calculate the time variable for plots and tables - if not given, guessed from the input directory')
+      default=20, help='size of the window used when generating the input data - this variable is used to calculate the time variable for plots and tables - if not given, guessed from the input directory')
 
   parser.add_argument('-o', '--overlap', metavar='INT', type=int,
-      default=None, help='size of the window overlap used when generating the input data - this variable is used to calculate the time variable for plots and tables - if not given, guessed from the input directory')
+      default=0, help='size of the window overlap used when generating the input data - this variable is used to calculate the time variable for plots and tables - if not given, guessed from the input directory')
 
   parser.add_argument('-a', '--average', default=False, action='store_true',
       dest='average', help='average thresholds instead of applying a score thresholding at every window interval')
@@ -113,7 +79,6 @@ def main():
 
   # try to guess if required:
   if args.featdir is None or \
-      args.protocol is None or \
       args.support is None or \
       args.windowsize is None or \
       args.overlap is None:
@@ -128,9 +93,6 @@ def main():
   if args.windowsize <= 0:
     parser.error("window-size has to be greater than zero")
 
-  protocol = args.protocol
-  if args.protocol == 'grandtest': args.protocol = None
-
   support = args.support
   if args.support == 'hand+fixed': args.support = None
 
@@ -138,10 +100,11 @@ def main():
 
   def get_files(args, group, cls):
     return db.files(args.featdir, extension='.hdf5', support=args.support,
-        protocol=args.protocol, groups=(group,), cls=cls)
+        protocol='print', groups=(group,), cls=cls)
 
   # quickly load the development set and establish the threshold:
-  thres = ml.time.eval_threshold(args.inputdir, args.minhter, args.verbose)
+  thres = ml.time.eval_threshold(args.inputdir, 'print', args.support,
+      args.minhter, args.verbose)
 
   # runs the analysis
   if args.verbose: print "Querying replay attack database..."
@@ -156,12 +119,12 @@ def main():
 
   outfile = os.path.join(args.inputdir, 'time-analysis-table.rst')
 
-  title = 'Time Analysis, Window *%d*, Overlap *%d*, Protocol *%s*, Support *%s*' % (args.windowsize, args.overlap, protocol, support)
+  title = 'Time Analysis, Window *%d*, Overlap *%d*, Protocol *%s*, Support *%s*' % (args.windowsize, args.overlap, 'print', support)
 
-  write_table(title, analyzer, open(outfile, 'wt'), args, protocol, support)
+  write_table(title, analyzer, open(outfile, 'wt'), args, 'print', support)
 
   if args.verbose: 
-    write_table(title, analyzer, sys.stdout, args, protocol, support)
+    write_table(title, analyzer, sys.stdout, args, 'print', support)
 
   outfile = os.path.join(args.inputdir,
       'time-analysis-misclassified-at-220.txt')

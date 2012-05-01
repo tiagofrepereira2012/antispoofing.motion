@@ -98,7 +98,9 @@ results shown at Table 2 and Figure 3 at the paper.
 To get results for specific supports as shown at the first two lines of Table
 2, just select the support using the ``--support=hand`` or ``--support=fixed``
 as a flag to ``rproptrain.py``. At this point, it is adviseable to use
-different output directories using the ``--output-dir`` flag as well.
+different output directories using the ``--output-dir`` flag as well. If you
+need to modify or regenerate Figure 3 at the paper, just look at
+`antispoofing/ml/perf.py`, which contains all plotting and analysis routines.
 
 Running the Time Analysis
 -------------------------
@@ -107,10 +109,16 @@ The time analysis is the end of the processing chain, it fuses the scores of
 instantaneous MLP outputs to give out a better estimation of attacks and
 real-accesses. To use it::
 
-  $ ./bin/time_analysis.py window_based
+  $ ./bin/time_analysis.py --network-dir=window_based --feature-dir=clustered --support=hand+fixed
 
-Omitted parameters will be guessed from the input directory name, if they can,
-otherwise an error is raised. To avoid the error, you may add options to
-`time_analysis.py` precising the window size used, the overlap, the protocol to
-be probed, the supports and the directory containing the features that will be
-used for the analysis.
+The 3 curves on Figure 4 at the paper relate to the different support types.
+Just repeat the procedure for every system trained with data for a particular
+support (equivalent for then entries in Table 2). The output for this script is
+dumped in PDF (plot) and text (``.rst`` file) on the directory containing the
+matching neural net (passed as parameter to ``--network-dir``).
+
+Problems
+--------
+
+In case of problems, please contact ``andre.anjos@idiap.ch`` and/or
+``sebastien.marcel@idiap.ch``.

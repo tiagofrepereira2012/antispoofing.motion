@@ -113,12 +113,12 @@ def main():
   del mlpfile
 
   if args.verbose: print "Saving result evolution..."
-  evofile = bob.io.HDF5File(os.path.join(use_outputdir, 'training-evolution.hdf5'),'t')
+  evofile = bob.io.HDF5File(os.path.join(use_outputdir, 'training-evolution.hdf5'),'w')
   evolution.save(evofile)
   del evofile
 
   if args.verbose: print "Running analysis..."
-  evolution.report(mlp, (data['test']['real'], data['test']['attack']), 
+  evolution.report(mlp, (data['test']['real'], data['test']['attack']),
       os.path.join(use_outputdir, 'plots.pdf'),
       os.path.join(use_outputdir, 'error.txt'))
   

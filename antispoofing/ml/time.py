@@ -9,24 +9,22 @@
 import os
 import bob
 import numpy
+from . import pack
 
-def eval_threshold(inputdir, minhter, verbose):
+def eval_threshold(inputdir, protocol, support, minhter, verbose):
   """Evaluates the optimal threshold for a given MLP/dataset"""
   
   if verbose: 
     print "Establishing optimal separation threshold at development set..."
 
-  datadir = os.path.join(inputdir, 'datasets')
+  datadir = os.path.join(inputdir, 'dataset')
   machfile = os.path.join(inputdir, 'mlp.hdf5')
 
-  def loader(group, cls):
-    filename = os.path.join(datadir, '%s-%s.hdf5' % (group, cls))
-    retval = bob.io.load(filename)
-    if verbose: print "[%-5s] %-6s: %8d" % (group, cls, retval.shape[0])
-    return retval
-  
-  real = loader('devel', 'real')
-  attack = loader('devel', 'attack')
+  data = pack.replay([datadir], protocol, support, groups=('devel',),
+    cls=('attack','real'))
+
+  real = data['devel']['real']
+  attack = data['devel']['attack']
   machine = bob.machine.MLP(bob.io.HDF5File(machfile))
 
   # pass the input data through the machine
@@ -34,10 +32,10 @@ def eval_threshold(inputdir, minhter, verbose):
   attack_scores = machine(attack)
 
   if minhter:
-    thres = bob.measure.minHterThreshold(attack_scores[:,0], real_scores[:,0])
+    thres = bob.measure.min_hter_threshold(attack_scores[:,0], real_scores[:,0])
     if verbose: print "Min. HTER threshold is: %.4e" % thres
   else:
-    thres = bob.measure.eerThreshold(attack_scores[:,0], real_scores[:,0])
+    thres = bob.measure.eer_threshold(attack_scores[:,0], real_scores[:,0])
     if verbose: print "EER threshold is: %.4e" % thres
 
   return thres
