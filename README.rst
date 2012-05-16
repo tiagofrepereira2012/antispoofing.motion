@@ -16,7 +16,7 @@ face recognition systems as described at the paper::
 
 The data used in the paper is publicly available and should be downloaded and
 installed **prior** to try using the programs described in this package. Visit
-`https://www.idiap.ch/dataset/printattack`_ for more information.
+`the PRINT-ATTACK database page <https://www.idiap.ch/dataset/printattack>`_ for more information.
 
 To run the code in this package, you will also need `Bob, an open-source
 toolkit for Signal Processing and Machine Learning
