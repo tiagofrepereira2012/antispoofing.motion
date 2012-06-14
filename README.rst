@@ -29,7 +29,7 @@ Installation
 To follow these instructions locally you will need a local copy of this
 package. Start by cloning this project with something like::
 
-  $ git clone --depth=1 https://github.com/bio.idiap/motion.antispoofing.git
+  $ git clone --depth=1 https://github.com/bioidiap/antispoofing.motion.git
   $ cd bob.project.example
   $ rm -rf .git # you don't need the git directories...
 
