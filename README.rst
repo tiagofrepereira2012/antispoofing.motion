@@ -27,21 +27,21 @@ Installation
 ------------
 
 To follow these instructions locally you will need a local copy of this
-package. Start by cloning this project with something like::
+package. Start by cloning this project with something like (shell commands are marked with a
+``$`` signal)::
 
   $ git clone --depth=1 https://github.com/bioidiap/antispoofing.motion.git
-  $ cd bob.project.example
+  $ cd antispoofing.motion
   $ rm -rf .git # you don't need the git directories...
 
 Alternatively, you can use the github tarball API to download the package::
 
-  $ wget --no-check-certificate https://github.com/idiap/bob.project.example/tarball/master -O- | tar xz 
-  $ mv idiap-bob.project* bob.project.example
+  $ wget --no-check-certificate https://github.com/bioidiap/antispoofing.motion/tarball/master -O- | tar xz 
+  $ mv bioidiap-antispoofing-* antispoofing.motion
 
 Installation of the toolkit uses the `buildout <http://www.buildout.org/>`_
 build environment. You don't need to understand its inner workings to use this
-package. Here is a recipe to get you started (shell commands are marked with a
-``$`` signal)::
+package. Here is a recipe to get you started::
   
   $ python bootstrap.py
   $ ./bin/buildout
