@@ -116,6 +116,7 @@ get you a fully operational test and development environment.
   installation you want to use. For example::
 
     [external]
+    recipe = xbob.buildout:external
     egg-directories=/Users/crazyfox/work/bob/build/lib
 
 User Guide
