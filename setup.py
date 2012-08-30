@@ -5,37 +5,18 @@
 
 from setuptools import setup, find_packages
 
-def make_single(top):
-  """Makes a single RST output by reading the given document and concatenating
-  it with its own ..include directives"""
-  import re
-  regexp = re.compile(r'^\s*..\sinclude::\s*(?P<i>\S+)\s*$')
-
-  output = ''
-
-  for l in open(top, 'rt'):
-
-    match = regexp.match(l)
-
-    if match is not None:
-      output += make_single(match.groupdict()['i'])
-    else:
-      output += l
-
-  return output
-
 # The only thing we do in this file is to call the setup() function with all
 # parameters that define our package.
 setup(
 
     name='antispoofing.motion',
-    version='1.0.0',
+    version='1.0.1',
     description='Motion counter-measures for the PRINT-ATTACK database',
     url='http://pypi.python.org/pypi/antispoofing.motion',
     license='GPLv3',
     author='Andre Anjos',
     author_email='andre.anjos@idiap.ch',
-    long_description=make_single('README.rst'),
+    long_description=open('README.rst').read(),
 
     # This line is required for any distutils based packaging.
     packages=find_packages(),
