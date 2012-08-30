@@ -6,28 +6,15 @@
  Frame Difference Workflow
 ===========================
 
-This document explains the frame difference work flow and how to replicate the
-results obtained at::
-
-  @INPROCEEDINGS{Anjos_IJCB_2011,
-    author = {Anjos, Andr{\'{e}} and Marcel, S{\'{e}}bastien},
-    keywords = {Attack, Counter-Measures, Counter-Spoofing, Disguise, Dishonest Acts, Face Recognition, Face Verification, Forgery, Liveness Detection, Replay, Spoofing, Trick},
-    month = oct,
-    title = {Counter-Measures to Photo Attacks in Face Recognition: a public database and a baseline},
-    journal = {International Joint Conference on Biometrics 2011},
-    year = {2011},
-    pdf = {http://publications.idiap.ch/downloads/papers/2011/Anjos_IJCB_2011.pdf}
-  }
-
-It is assumed you have followed the installation instructions for the package,
-as described in the ``README.txt`` file located in the root of the package and
-got this package installed and the PRINT-ATTACK database downloaded and
-uncompressed in a directory.  After running the ``buildout`` command, you
-should have all required utilities sitting inside the ``bin`` directory. We
-expect that the video files downloaded for the PRINT-ATTACK database are
-installed in a sub-directory called ``database`` at the root of the package.
-You can use a link to the location of the database files, if you don't want to
-have the database installed on the root of this package::
+It is assumed you have followed the installation instructions for the package
+and got this package installed and the PRINT-ATTACK database downloaded and
+uncompressed in a directory.  You should have all required utilities sitting
+inside a binary directory depending on your installation strategy (utilities
+will be inside the ``bin`` if you used the buildout option). We expect that the
+video files downloaded for the PRINT-ATTACK database are installed in a
+sub-directory called ``database`` at the root of the package.  You can use a
+link to the location of the database files, if you don't want to have the
+database installed on the root of this package::
 
   $ ln -s /path/where/you/installed/the/print-attack-database database
 
