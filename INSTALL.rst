@@ -17,9 +17,9 @@ Installation
 
 There are 2 options you can follow to get this package installed and
 operational on your computer: you can use automatic installers like `pip
-<http://pypi.python.org/pypi/pip/>_` (or `easy_install
+<http://pypi.python.org/pypi/pip/>`_ (or `easy_install
 <http://pypi.python.org/pypi/setuptools>`_) or manually download, unpack and
-use `zc.buildout <http://pypi.python.org/pypi/zc.buildout>_` to create a
+use `zc.buildout <http://pypi.python.org/pypi/zc.buildout>`_ to create a
 virtual work environment just for this package.
 
 Using an automatic installer
