@@ -107,5 +107,4 @@ matching neural net (passed as parameter to ``--network-dir``).
 Problems
 --------
 
-In case of problems, please contact ``andre.anjos@idiap.ch`` and/or
-``sebastien.marcel@idiap.ch``.
+In case of problems, please contact any of the authors of the paper.
