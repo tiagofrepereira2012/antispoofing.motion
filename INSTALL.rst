@@ -8,8 +8,8 @@ Installation
 .. note:: 
 
   If you are reading this page through our GitHub portal and not through PyPI,
-  note **the development tip of the package may not be stabled** or become
-  unstable in a matter of moments. 
+  note **the development tip of the package may not be stable** or become
+  unstable in a matter of moments.
 
   Go to `http://pypi.python.org/pypi/antispoofing.motion
   <http://pypi.python.org/pypi/antispoofing.motion>`_ to download the latest
