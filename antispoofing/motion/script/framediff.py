@@ -4,7 +4,7 @@
 # Mon 02 Aug 2010 11:31:31 CEST 
 
 """Calculates the normalized frame differences for all videos of the
-PRINT-ATTACK database. This technique is described on the paper:
+REPLAY-ATTACK database. This technique is described on the paper:
 Counter-Measures to Photo Attacks in Face Recognition: a public database and a
 baseline, Anjos & Marcel, IJCB'11.
 """
@@ -16,28 +16,59 @@ def main():
   
   import bob
   import numpy
+  from xbob.db.replay import Database
+
+  protocols = Database().protocols()
 
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
-
-  INPUT_DIR = os.path.join(basedir, 'database')
-  OUTPUT_DIR = os.path.join(basedir, 'framediff')
+  INPUTDIR = os.path.join(basedir, 'database')
+  OUTPUTDIR = os.path.join(basedir, 'framediff')
 
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
-  parser.add_argument('-v', '--input-dir', metavar='DIR', type=str,
-      dest='inputdir', default=INPUT_DIR, help='Base directory containing the videos to be treated by this procedure (defaults to "%(default)s")')
-  parser.add_argument('-d', '--directory', dest="directory", default=OUTPUT_DIR, help="if given, this path will be prepended to every file output by this procedure (defaults to '%(default)s')")
+  parser.add_argument('inputdir', metavar='DIR', type=str, default=INPUTDIR,
+      nargs='?', help='Base directory containing the videos to be treated by this procedure (defaults to "%(default)s")')
+  parser.add_argument('outputdir', metavar='DIR', type=str, default=OUTPUTDIR,
+      nargs='?', help='Base output directory for every file created by this procedure defaults to "%(default)s")')
+  parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
+      default='grandtest', choices=protocols, dest="protocol",
+      help='The protocol type may be specified instead of the the id switch to subselect a smaller number of files to operate on (one of "%s"; defaults to "%%(default)s")' % '|'.join(sorted(protocols)))
+      
+  # If set, assumes it is being run using a parametric grid job. It orders all
+  # ids to be processed and picks the one at the position given by
+  # ${SGE_TASK_ID}-1'). To avoid user confusion, this option is suppressed
+  # from the --help menu
+  parser.add_argument('--grid', dest='grid', action='store_true',
+      default=False, help=argparse.SUPPRESS)
+  # The next option just returns the total number of cases we will be running
+  # It can be used to set jman --array option.
+  parser.add_argument('--grid-count', dest='grid_count', action='store_true',
+      default=False, help=argparse.SUPPRESS)
 
   args = parser.parse_args()
 
   from ...faceloc import read_face, expand_detections
   from .. import eval_face_differences, eval_background_differences
 
-  db = bob.db.replay.Database()
+  db = Database()
 
   process = db.files(directory=args.inputdir, extension='.mov', 
-      protocol='print')
-  
+      protocol=args.protocol)
+
+  if args.grid_count:
+    print len(process)
+    sys.exit(0)
+ 
+  # if we are on a grid environment, just find what I have to process.
+  if args.grid:
+    pos = int(os.environ['SGE_TASK_ID']) - 1
+    ordered_keys = sorted(process.keys())
+    if pos >= len(ordered_keys):
+      raise RuntimeError, "Grid request for job %d on a setup with %d jobs" % \
+          (pos, len(ordered_keys))
+    key = ordered_keys[pos] # gets the right key
+    process = {key: process[key]}
+
   # where to find the face bounding boxes
   faceloc_dir = os.path.join(args.inputdir, 'face-locations')
 
@@ -81,7 +112,7 @@ def main():
 
     # saves the output
     arr = numpy.array(data, dtype='float64')
-    db.save_one(key, arr, directory=args.directory, extension='.hdf5')
+    db.save_one(key, arr, directory=args.outputdir, extension='.hdf5')
     
     sys.stdout.write('\n')
     sys.stdout.flush()

@@ -28,21 +28,38 @@ def main():
 
   import bob
   import numpy
+  from xbob.db.replay import Database
+
+  protocols = Database().protocols()
 
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
-
-  INPUT_DIR = os.path.join(basedir, 'framediff')
-  OUTPUT_DIR = os.path.join(basedir, 'clustered')
+  INPUTDIR = os.path.join(basedir, 'framediff')
+  OUTPUTDIR = os.path.join(basedir, 'clustered')
 
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
-  parser.add_argument('-v', '--input-dir', metavar='DIR', type=str,
-      dest='inputdir', default=INPUT_DIR, help='Base directory containing the frame differences to be treated by this procedure (defaults to "%(default)s")')
-  parser.add_argument('-d', '--directory', dest="directory", default=OUTPUT_DIR, help="if given, this path will be prepended to every file output by this procedure (defaults to '%(default)s')")
+  parser.add_argument('inputdir', metavar='DIR', type=str, default=INPUTDIR,
+      nargs='?', help='Base directory containing the frame differences to be treated by this procedure (defaults to "%(default)s")')
+  parser.add_argument('outputdir', metavar='DIR', type=str, default=OUTPUTDIR,
+      nargs='?', help='Base output directory for every file created by this procedure defaults to "%(default)s")')
+  parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
+      default='grandtest', choices=protocols, dest="protocol",
+      help="The protocol type may be specified instead of the the id switch to subselect a smaller number of files to operate on (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(protocols)))
   parser.add_argument('-n', '--window-size', dest="window_size", default=20,
       type=int, help="determines the window size to be used when clustering frame-difference observations (defaults to %(default)s)"),
   parser.add_argument('-o', '--overlap', dest="overlap", default=0, type=int,
       help="determines the window overlapping; this number has to be between 0 (no overlapping) and 'window-size'-1 (defaults to %(default)s)"),
+
+  # If set, assumes it is being run using a parametric grid job. It orders all
+  # ids to be processed and picks the one at the position given by
+  # ${SGE_TASK_ID}-1'). To avoid user confusion, this option is suppressed
+  # from the --help menu
+  parser.add_argument('--grid', dest='grid', action='store_true',
+      default=False, help=argparse.SUPPRESS)
+  # The next option just returns the total number of cases we will be running
+  # It can be used to set jman --array option.
+  parser.add_argument('--grid-count', dest='grid_count', action='store_true',
+      default=False, help=argparse.SUPPRESS)
 
   args = parser.parse_args()
 
@@ -54,10 +71,25 @@ def main():
 
   from .. import cluster_5quantities
 
-  db = bob.db.replay.Database()
+  db = Database()
 
-  process = db.files(directory=args.inputdir, extension='.hdf5', protocol='print')
+  process = db.files(directory=args.inputdir, extension='.hdf5', 
+      protocol=args.protocol)
   
+  if args.grid_count:
+    print len(process)
+    sys.exit(0)
+ 
+  # if we are on a grid environment, just find what I have to process.
+  if args.grid:
+    pos = int(os.environ['SGE_TASK_ID']) - 1
+    ordered_keys = sorted(process.keys())
+    if pos >= len(ordered_keys):
+      raise RuntimeError, "Grid request for job %d on a setup with %d jobs" % \
+          (pos, len(ordered_keys))
+    key = ordered_keys[pos] # gets the right key
+    process = {key: process[key]}
+
   sys.stdout.write('Processing %d file(s)\n' % len(process))
   sys.stdout.flush()
 
@@ -74,8 +106,8 @@ def main():
     d_face = cluster_5quantities(input[:,0], args.window_size, args.overlap)
     d_bg   = cluster_5quantities(input[:,1], args.window_size, args.overlap)
     arr = numpy.hstack((d_face, d_bg))
-    db.save_one(key, arr, directory=args.directory, extension='.hdf5')
-    sys.stdout.write('Saving results to "%s"...\n' % args.directory)
+    db.save_one(key, arr, directory=args.outputdir, extension='.hdf5')
+    sys.stdout.write('Saving results to "%s"...\n' % args.outputdir)
     sys.stdout.flush()
 
   sys.stdout.write('\n')

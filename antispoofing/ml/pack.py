@@ -7,10 +7,9 @@
 """
 
 import os
-import sys
 import bob
 import numpy
-import argparse
+from xbob.db.replay import Database
 
 def replay(inputs, protocol, support, groups=('train', 'devel', 'test'),
     cls=('attack','real'), device='any'):
@@ -87,7 +86,7 @@ def replay(inputs, protocol, support, groups=('train', 'devel', 'test'),
   if isinstance(groups, (str,unicode)): groups = (groups,)
   if isinstance(cls, (str,unicode)): cls = (cls,)
 
-  db = bob.db.replay.Database()
+  db = Database()
 
   retval = {}
 
