@@ -266,7 +266,7 @@ The time analysis is the end of the processing chain, it fuses the scores of
 instantaneous MLP outputs to give out a better estimation of attacks and
 real-accesses. To use it::
 
-  $ ./bin/time_analysis.py --network-dir=window_based --feature-dir=clustered --support=hand+fixed
+  $ ./bin/time_analysis.py network-directory
 
 The 3 curves on Figure 4 at the paper relate to the different support types.
 Just repeat the procedure for every system trained with data for a particular

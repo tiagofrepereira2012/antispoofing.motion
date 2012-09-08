@@ -108,7 +108,7 @@ class Analyzer:
     for k in f.paths():
       self.data[k.strip('/')] = f.read(k)
 
-  def report(self, machine, test, pdffile, textfile):
+  def report(self, machine, test, pdffile, cfgfile):
     """Complete analysis of the contained data, with plots and all..."""
 
     import matplotlib; matplotlib.use('pdf') #avoids TkInter threaded start
@@ -128,14 +128,17 @@ class Analyzer:
     # Here we start with the plotting and writing of tables in files
     # --------------------------------------------------------------
 
-    perftable, eer_thres, mhter_thres = perf.performance_table(test_output, 
-        self.devel_output, "Performance Table")
+    if isinstance(cfgfile, (str, unicode)): 
+      from ConfigParser import SafeConfigParser
+      tmp = SafeConfigParser()
+      eer_thres, mhter_thres = perf.performance_table(tmp, test_output, 
+          self.devel_output)
+      tmp.write(open(cfgfile, 'wb'))
+    else:
+      eer_thres, mhter_thres = perf.performance_table(cfgfile, test_output,
+          self.devel_output)
 
     devel_res, test_res = perf.perf_hter_thorough(test_output, self.devel_output, bob.measure.eer_threshold) # returns FAR/FRR/HTER for the development and test set
-
-    tf = open(textfile, 'wt')
-    tf.write(perftable)
-    tf.close()
 
     pp = PdfPages(pdffile)
 

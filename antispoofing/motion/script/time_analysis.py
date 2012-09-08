@@ -42,8 +42,7 @@ def main():
 
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
 
-  FEATURE_DIR = os.path.join(basedir, 'clustered')
-  NETWORK_DIR = os.path.join(basedir, 'window_based')
+  NETWORK_DIR = os.path.join(basedir, 'mlp')
 
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)

@@ -127,15 +127,19 @@ def perf_hter_thorough(test_scores, devel_scores, threshold_func):
   test_far, test_frr = farfrr(test_attack_scores, test_real_scores, thres)
   return (devel_far, devel_frr), (test_far, test_frr)
 
-def performance_table(test, devel, title):
+def performance_table(config, test, devel):
   """Returns a string containing the performance table"""
 
-  def pline(group, far, attack_count, frr, real_count):
-    fmtstr = " %s: FAR %.2f%% (%d / %d) / FRR %.2f%% (%d / %d) / HTER %.2f%%"
-    return fmtstr % (group,
-        100 * far, int(round(far*attack_count)), attack_count, 
-        100 * frr, int(round(frr*real_count)), real_count, 
-        50 * (far + frr))
+  def make_dict(prefix, far, attack_count, frr, real_count):
+    retval = {}
+    retval[prefix + 'far-percent'] = '%.2f' % (100*far,)
+    retval[prefix + 'frr-percent'] = '%.2f' % (100*frr,)
+    retval[prefix + 'hter-percent'] = '%.2f' % (50 * (far + frr),)
+    retval[prefix + 'misclassified-attacks'] = str(int(round(far*attack_count)))
+    retval[prefix + 'misclassified-real-accesses'] = str(int(round(frr*real_count)))
+    retval[prefix + 'total-attacks'] = str(attack_count)
+    retval[prefix + 'total-real-accesses'] =  str(real_count)
+    return retval
 
   def perf(devel_scores, test_scores, threshold_func):
   
@@ -155,26 +159,23 @@ def performance_table(test, devel, title):
     devel_far, devel_frr = farfrr(devel_attack_scores, devel_real_scores, thres)
     test_far, test_frr = farfrr(test_attack_scores, test_real_scores, thres)
 
-    retval = []
-    retval.append(" threshold: %.4f" % thres)
-    retval.append(pline("dev ", devel_far, devel_attack, devel_frr, devel_real))
-    retval.append(pline("test", test_far, test_attack, test_frr, test_real))
+    retval = {'threshold': '%.4f' % thres}
+    d = make_dict('devel-', devel_far, devel_attack, devel_frr, devel_real)
+    retval.update(d)
+    d = make_dict('test-', test_far, test_attack, test_frr, test_real)
+    retval.update(d)
 
     return retval, thres
 
-  retval = []
-  retval.append(title)
-  retval.append("")
-  retval.append("EER @ devel")
-  eer_table, eer_thres = perf(devel, test, bob.measure.eer_threshold)
-  retval.extend(eer_table)
-  retval.append("")
-  retval.append("Mininum HTER @ devel")
-  mhter_table, mhter_thres = perf(devel, test, bob.measure.min_hter_threshold)
-  retval.extend(mhter_table)
-  retval.append("")
+  config.add_section('error-eer')
+  table, eer_thres = perf(devel, test, bob.measure.eer_threshold)
+  for key in sorted(table.keys()): config.set('error-eer', key, table[key])
 
-  return ''.join([k+'\n' for k in retval]), eer_thres, mhter_thres
+  config.add_section('error-mhter')
+  table, mhter_thres = perf(devel, test, bob.measure.min_hter_threshold)
+  for key in sorted(table.keys()): config.set('error-mhter', key, table[key])
+
+  return eer_thres, mhter_thres
 
 def roc(test, devel, train, npoints, eer_thres, mhter_thres):
   """Plots the ROC curve using Matplotlib"""

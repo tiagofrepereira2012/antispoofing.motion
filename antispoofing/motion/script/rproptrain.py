@@ -11,9 +11,12 @@ normalized frame differences.
 import os
 import sys
 import time
+import datetime
+import socket
 import bob
 import argparse
 from ... import ml
+import ConfigParser
 
 def main():
   """Main method"""
@@ -59,6 +62,13 @@ def main():
 
   args = parser.parse_args()
 
+  start_time = time.time()
+  paramfile = ConfigParser.SafeConfigParser()
+  paramfile.add_section('time')
+  paramfile.set('time', 'start', time.asctime())
+
+  if args.verbose: print "Start time is", time.asctime()
+
   if not os.path.exists(args.inputdir):
     parser.error("input directory `%s' does not exist" % args.inputdir)
 
@@ -74,14 +84,8 @@ def main():
     
   if args.verbose: print "Output directory set to \"%s\"" % use_outputdir
 
-  # create a link to the data directory at the output directory so we keep
-  # track of where the data came from.
   use_inputdir = []
-  link = os.path.join(use_outputdir, "dataset")
-  if os.path.lexists(link): os.unlink(link)
-  if args.verbose: print "Creating link to data directory..."
   abspath = os.path.abspath(args.inputdir)
-  open(link, 'wt').write(abspath + '\n')
   use_inputdir.append(abspath)
 
   if args.verbose: print "Loading input files for protocol:%s, support:%s..." \
@@ -94,30 +98,37 @@ def main():
     print "Devel/attack:", len(data['devel']['attack'])
     print "Test /real  :", len(data['test']['real'])
     print "Test /attack:", len(data['test']['attack'])
-
+  
   if args.verbose: print "Training MLP..."
   mlp, evolution = ml.rprop.make_mlp((data['train']['real'],
     data['train']['attack']), (data['devel']['real'], data['devel']['attack']),
     args.batch, args.nhidden, args.epoch, args.maxiter, args.noimprov,
     args.verbose)
 
-  if args.verbose: print "Saving training parameters..."
-  paramfile = open(os.path.join(use_outputdir, 'parameters.txt'), 'wt')
-  paramfile.write('script: %s\n' % os.path.realpath(sys.argv[0]))
-  paramfile.write('data  : %s\n' % [os.path.realpath(k) for k in use_inputdir])
-  paramfile.write('output: %s\n' % os.path.realpath(use_outputdir))
-  paramfile.write('batch size: %d\n' % args.batch)
-  paramfile.write('epoch size: %d\n' % args.epoch)
-  paramfile.write('hidden neurons: %d\n' % args.nhidden)
-  paramfile.write('maximum iterations: %d\n' % args.maxiter)
-  paramfile.write('command line: %s\n' % ' '.join(sys.argv))
-  paramfile.write('protocol: %s\n' % args.protocol)
+  if args.verbose: print "Saving session information..."
+  paramfile.add_section('data')
+  datapath = [os.path.realpath(k) for k in use_inputdir]
+  paramfile.set('data', 'input', '\n'.join(datapath))
+  paramfile.set('data', 'train-real', str(len(data['train']['real'])))
+  paramfile.set('data', 'train-attack', str(len(data['train']['attack'])))
+  paramfile.set('data', 'devel-real', str(len(data['devel']['real'])))
+  paramfile.set('data', 'devel-attack', str(len(data['devel']['attack'])))
+  paramfile.set('data', 'test-real', str(len(data['test']['real'])))
+  paramfile.set('data', 'test-attack', str(len(data['test']['attack'])))
+
+  paramfile.add_section('mlp')
+  paramfile.set('mlp', 'batch-size', str(args.batch))
+  paramfile.set('mlp', 'epoch-size', str(args.epoch))
+  paramfile.set('mlp', 'hidden-neurons', str(args.nhidden))
+  paramfile.set('mlp', 'maximum-iterations', str(args.maxiter))
+  cmdline = [os.path.realpath(sys.argv[0])] + sys.argv[1:]
+  paramfile.set('mlp', 'command-line', ' '.join(cmdline))
+  paramfile.set('mlp', 'protocol', args.protocol)
   write_support = args.support
   if isinstance(write_support, (tuple,list)):
-    write_support = '+'.join(args.support)
-  elif write_support is None: write_support = '+'.join(('hand','fixed'))
-  paramfile.write('support : %s\n' % write_support)
-  del paramfile
+    write_support = '\n'.join(args.support)
+  elif write_support is None: write_support = '\n'.join(('hand','fixed'))
+  paramfile.set('mlp', 'support', write_support)
   
   if args.verbose: print "Saving MLP..."
   mlpfile = bob.io.HDF5File(os.path.join(use_outputdir, 'mlp.hdf5'),'w')
@@ -125,15 +136,25 @@ def main():
   del mlpfile
 
   if args.verbose: print "Saving result evolution..."
-  evofile = bob.io.HDF5File(os.path.join(use_outputdir, 'training-evolution.hdf5'),'w')
+  evofile = bob.io.HDF5File(os.path.join(use_outputdir,
+    'training-evolution.hdf5'),'w')
   evolution.save(evofile)
   del evofile
 
   if args.verbose: print "Running analysis..."
   evolution.report(mlp, (data['test']['real'], data['test']['attack']),
-      os.path.join(use_outputdir, 'plots.pdf'),
-      os.path.join(use_outputdir, 'error.txt'))
+      os.path.join(use_outputdir, 'plots.pdf'), paramfile)
   
+  paramfile.set('time', 'end', time.asctime())
+  total_time = int(time.time() - start_time)
+  diff = datetime.timedelta(seconds=total_time)
+  paramfile.set('time', 'duration', str(diff))
+  paramfile.set('time', 'host', socket.getfqdn())
+
+  if args.verbose: print "End time is", time.asctime()
+  if args.verbose: print "Total training time:", str(diff)
+
+  paramfile.write(open(os.path.join(use_outputdir, 'session.txt'), 'wb'))
   if args.verbose: print "All done, bye!"
  
 if __name__ == '__main__':
