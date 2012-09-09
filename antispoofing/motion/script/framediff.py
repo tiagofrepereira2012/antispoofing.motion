@@ -33,7 +33,12 @@ def main():
   parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
       default='grandtest', choices=protocols, dest="protocol",
       help='The protocol type may be specified instead of the the id switch to subselect a smaller number of files to operate on (one of "%s"; defaults to "%%(default)s")' % '|'.join(sorted(protocols)))
-      
+
+  supports = ('fixed', 'hand', 'hand+fixed')
+
+  parser.add_argument('-s', '--support', metavar='SUPPORT', type=str,
+      default='hand+fixed', dest='support', choices=supports, help="If you would like to select a specific support to be used, use this option (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(supports)))
+
   # If set, assumes it is being run using a parametric grid job. It orders all
   # ids to be processed and picks the one at the position given by
   # ${SGE_TASK_ID}-1'). To avoid user confusion, this option is suppressed
@@ -47,13 +52,15 @@ def main():
 
   args = parser.parse_args()
 
+  if args.support == 'hand+fixed': args.support = ('hand', 'fixed')
+
   from ...faceloc import read_face, expand_detections
   from .. import eval_face_differences, eval_background_differences
 
   db = Database()
 
   process = db.files(directory=args.inputdir, extension='.mov', 
-      protocol=args.protocol)
+      protocol=args.protocol, support=args.support)
 
   if args.grid_count:
     print len(process)

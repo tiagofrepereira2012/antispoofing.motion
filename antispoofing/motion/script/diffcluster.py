@@ -41,10 +41,16 @@ def main():
   parser.add_argument('inputdir', metavar='DIR', type=str, default=INPUTDIR,
       nargs='?', help='Base directory containing the frame differences to be treated by this procedure (defaults to "%(default)s")')
   parser.add_argument('outputdir', metavar='DIR', type=str, default=OUTPUTDIR,
-      nargs='?', help='Base output directory for every file created by this procedure defaults to "%(default)s")')
+      nargs='?', help='Base output directory for every file created by this procedure (defaults to "%(default)s")')
   parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
       default='grandtest', choices=protocols, dest="protocol",
       help="The protocol type may be specified to subselect a smaller number of files to operate on (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(protocols)))
+
+  supports = ('fixed', 'hand', 'hand+fixed')
+
+  parser.add_argument('-s', '--support', metavar='SUPPORT', type=str,
+      default='hand+fixed', dest='support', choices=supports, help="If you would like to select a specific support to be used, use this option (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(supports)))
+
   parser.add_argument('-n', '--window-size', dest="window_size", default=20,
       type=int, help="determines the window size to be used when clustering frame-difference observations (defaults to %(default)s)"),
   parser.add_argument('-o', '--overlap', dest="overlap", default=0, type=int,
@@ -69,12 +75,14 @@ def main():
   if args.overlap >= args.window_size or args.overlap < 0:
     parser.error("overlap has to be smaller than window-size and greater or equal zero")
 
+  if args.support == 'hand+fixed': args.support = ('hand', 'fixed')
+
   from .. import cluster_5quantities
 
   db = Database()
 
   process = db.files(directory=args.inputdir, extension='.hdf5', 
-      protocol=args.protocol)
+      protocol=args.protocol, support=args.support)
   
   if args.grid_count:
     print len(process)
