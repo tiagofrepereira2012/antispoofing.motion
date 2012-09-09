@@ -280,11 +280,38 @@ Dumping MLP Scores
 You can dump the scores for every input file in the ``clustered`` directory
 using the ``make_scores.py`` script::
 
-  $ ./bin/make_scores.py network-directory
+  $ ./bin/make_scores.py network-directory scores
 
 This should give you the detailed output of the MLP for every input file in the
 training, development and test sets. You can use these score files in your
 own score analysis routines, for example.
+
+Merging Scores
+==============
+
+If you wish to create a single `5-column format file
+<http://www.idiap.ch/software/bob/docs/nightlies/last/bob/sphinx/html/measure/index.html?highlight=five_col#bob.measure.load.five_column>`_
+by combining this counter-measure scores for every video into a single file
+that can be fed to external analysis utilities such as our
+`antispoofing.evaluation <http://pypi.python.org/pypi/antispoofing.evaluation>`
+package, you should use the script ``merge_scores.py``. You will have to
+specify how many of the scores in every video you will want to average and the
+input directory containing the scores files that will be merged. 
+
+The output of the program consists of a single 5-column formatted file with the
+client identities and scores for **every video** in the input directory. A line
+in the output file corresponds to a video from the database. 
+
+You run this program on the output of ``make_scores.py``. So, it should look
+like this if you followed the previous example::
+
+  $ ./bin/merge_scores.py scores/train motion-train.txt
+  $ ./bin/merge_scores.py scores/devel motion-devel.txt
+  $ ./bin/merge_scores.py socres/test motion-test.txt
+
+The above commandline examples will generate 3 files containing the training,
+development and test scores, accumulated over each video in the respective
+subsets, for input scores in the given input directory.
 
 Problems
 --------
