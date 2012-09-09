@@ -17,9 +17,6 @@ import ConfigParser
 def main():
   """Main method"""
   
-  from xbob.db.replay import Database
-  protocols = Database().protocols()
-
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
 
   INPUTDIR = os.path.join(basedir, 'mlp')
@@ -44,6 +41,7 @@ def main():
   session = ConfigParser.SafeConfigParser()
   session.readfp(open(os.path.join(args.inputdir, 'session.txt'), 'rb'))
     
+  from xbob.db.replay import Database
   db = Database()
 
   process = db.files(directory=session.get('data', 'input'), extension='.hdf5', 
