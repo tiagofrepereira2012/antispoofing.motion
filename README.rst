@@ -48,8 +48,7 @@ applications described in this manual. To generate the results for the paper,
 just select `print` as protocol option where necessary.
 
 The data used in the paper is publicly available and should be downloaded and
-installed **prior** to try using the programs described in this package. Visit
-for more information.
+installed **prior** to try using the programs described in this package.
 
 Installation
 ------------
