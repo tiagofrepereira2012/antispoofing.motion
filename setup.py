@@ -11,7 +11,7 @@ setup(
 
     name='antispoofing.motion',
     version='1.0.2',
-    description='Motion counter-measures for the PRINT-ATTACK database',
+    description='Motion counter-measures for the REPLAY-ATTACK database',
     url='http://pypi.python.org/pypi/antispoofing.motion',
     license='GPLv3',
     author='Andre Anjos',

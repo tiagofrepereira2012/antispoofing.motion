@@ -1,6 +1,6 @@
-============================================================
- Motion-Based Counter-Measures for Printed Spoofing Attacks
-============================================================
+====================================================
+ Motion-Based Counter-Measures for Spoofing Attacks
+====================================================
 
 This package implements a motion-based counter-measure to spoofing attacks to
 face recognition systems as described at the paper `Counter-Measures to Photo
