@@ -44,7 +44,7 @@ def main():
       nargs='?', help='Base output directory for every file created by this procedure defaults to "%(default)s")')
   parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
       default='grandtest', choices=protocols, dest="protocol",
-      help="The protocol type may be specified instead of the the id switch to subselect a smaller number of files to operate on (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(protocols)))
+      help="The protocol type may be specified to subselect a smaller number of files to operate on (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(protocols)))
   parser.add_argument('-n', '--window-size', dest="window_size", default=20,
       type=int, help="determines the window size to be used when clustering frame-difference observations (defaults to %(default)s)"),
   parser.add_argument('-o', '--overlap', dest="overlap", default=0, type=int,
