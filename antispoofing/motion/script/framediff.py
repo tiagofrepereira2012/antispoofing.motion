@@ -3,10 +3,10 @@
 # Andre Anjos <andre.anjos@idiap.ch>
 # Mon 02 Aug 2010 11:31:31 CEST 
 
-"""Calculates the normalized frame differences for all videos of the
-REPLAY-ATTACK database. This technique is described on the paper:
+"""Calculates the normalized frame differences for face and background, for all
+videos of the REPLAY-ATTACK database. This technique is described on the paper:
 Counter-Measures to Photo Attacks in Face Recognition: a public database and a
-baseline, Anjos & Marcel, IJCB'11.
+baseline, Anjos & Marcel, IJCB'11.  
 """
 
 import os, sys

@@ -31,7 +31,7 @@ def main():
 
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
-  parser.add_argument('inputdir', metavar='DIR', type=str, default=INPUTDIR, nargs='?', help='Base directory containing the scores to be loaded. Final scores will be generated from the input directories and concatenated column-wise to form the final training matrix (defaults to "%(default)s").')
+  parser.add_argument('inputdir', metavar='DIR', type=str, default=INPUTDIR, nargs='?', help='Base directory containing the 5-quantities to be loaded. Final MLP input will be generated from the input directory and concatenated column-wise to form the final training matrix (defaults to "%(default)s").')
   parser.add_argument('outputdir', metavar='DIR', type=str, default=OUTPUTDIR, nargs='?', help='Base directory that will be used to save the results. The given value will be interpolated with time.strftime and then, os.environ (in this order), so you can include %%()s strings (e.g. %(SGE_TASK_ID)s) to make up the final output directory path (defaults to "%(default)s").')
   parser.add_argument('-b', '--batch-size', metavar='INT', type=int,
       dest='batch', default=200, help='The number of samples per training iteration. Good values are greater than 100. Defaults to %(default)s')
@@ -48,7 +48,6 @@ def main():
   parser.add_argument('-V', '--verbose', action='store_true', dest='verbose',
       default=False, help='Increases this script verbosity')
 
-  # featpack functionality
   protocols = Database().protocols()
 
   parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
