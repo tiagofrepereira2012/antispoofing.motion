@@ -3,9 +3,8 @@
 # Andre Anjos <andre.anjos@idiap.ch>
 # Thu 28 Jul 2011 14:18:23 CEST 
 
-"""This script can train a bob MLP machine to perform discrimination based
-on input derived from one or more sets of the 5-quantities we can produce from
-normalized frame differences.
+"""This script will run feature vectors through a trained MLP and will produce
+score files for every individual video file in the database.
 """
 
 import os
