@@ -40,6 +40,7 @@ setup(
         'diffcluster.py = antispoofing.motion.script.diffcluster:main',
         'rproptrain.py = antispoofing.motion.script.rproptrain:main',
         'time_analysis.py = antispoofing.motion.script.time_analysis:main',
+        'make_scores.py = antispoofing.motion.script.make_scores:main',
         ],
 
       },
