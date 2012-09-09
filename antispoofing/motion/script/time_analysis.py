@@ -12,6 +12,8 @@ import sys
 import bob
 import argparse
 from ... import ml
+from xbob.db.replay import Database
+import ConfigParser
 
 def write_table(title, analyzer, file, args, protocol, support):
 
@@ -38,6 +40,10 @@ def write_table(title, analyzer, file, args, protocol, support):
 
 def main():
 
+  db = Database()
+
+  protocols = db.protocols()
+
   support_choices = ('hand', 'fixed', 'hand+fixed')
 
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
@@ -47,26 +53,24 @@ def main():
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
 
-  parser.add_argument('-n', '--network-dir', metavar='DIR', type=str,
-      dest='inputdir', default=NETWORK_DIR, help='directory containing the files to be analyzed - this is the directory containing the mlp machine and the "dataset" link')
+  parser.add_argument('inputdir', metavar='DIR', type=str, nargs='?',
+      default=NETWORK_DIR, help='directory containing the files to be analyzed - this is the directory containing the mlp machine')
 
-  parser.add_argument('-f', '--feature-dir', metavar='DIR', type=str,
-      dest='featdir', default=FEATURE_DIR, help='directory containing the per-client features - if not given, guessed from the input directory')
+  parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str, choices=protocols, dest="protocol", help='The protocol type may be specified to subselect a smaller number of files to operate on (one of "%s") - if not given, it is read from the network directory file called "session.txt"' % '|'.join(sorted(protocols)))
 
-  parser.add_argument('-s', '--support', metavar='SUPPORT', type=str,
-      default='hand+fixed', dest='support', help='if set, limit performance analysis to a specific support - if not given, guessed from the input directory')
+  parser.add_argument('-s', '--support', metavar='SUPPORT', type=str, dest='support', help='if set, limit performance analysis to a specific support - if not given, it is read from the network directory file called "session.txt"')
 
   parser.add_argument('-w', '--windowsize', metavar='INT', type=int,
-      default=20, help='size of the window used when generating the input data - this variable is used to calculate the time variable for plots and tables - if not given, guessed from the input directory')
+      default=20, help='size of the window used when generating the input data - this variable is used to calculate the time variable for plots and tables (defaults to %(default)s)')
 
   parser.add_argument('-o', '--overlap', metavar='INT', type=int,
-      default=0, help='size of the window overlap used when generating the input data - this variable is used to calculate the time variable for plots and tables - if not given, guessed from the input directory')
+      default=0, help='size of the window overlap used when generating the input data - this variable is used to calculate the time variable for plots and tables (defaults to %(default)s)')
 
   parser.add_argument('-a', '--average', default=False, action='store_true',
-      dest='average', help='average thresholds instead of applying a score thresholding at every window interval')
+      dest='average', help='if set, average thresholds instead of applying a score thresholding at every window interval')
 
   parser.add_argument('-m', '--min-hter', default=False, action='store_true',
-      dest='minhter', help='uses the min. HTER threshold instead of the EER threshold on the development set')
+      dest='minhter', help='if set, uses the min. HTER threshold instead of the EER threshold on the development set')
 
   parser.add_argument('-v', '--verbose', default=False, action='store_true',
       dest='verbose', help='increases the script verbosity')
@@ -76,12 +80,16 @@ def main():
   if not os.path.exists(args.inputdir):
     parser.error("input directory does not exist")
 
-  # try to guess if required:
-  if args.featdir is None or \
-      args.support is None or \
-      args.windowsize is None or \
-      args.overlap is None:
-    guess(args)
+  config = ConfigParser.SafeConfigParser()
+  config.readfp(open(os.path.join(args.inputdir, "session.txt"), 'rb'))
+
+  if args.protocol is None:
+    args.protocol = config.get('mlp', 'protocol')
+
+  if args.support is None:
+    args.support = config.get('mlp', 'support').split()
+  elif args.support == 'hand+fixed':
+    args.support = args.support.split('+')
 
   if args.overlap >= args.windowsize:
     parser.error("overlap has to be smaller than window-size")
@@ -92,17 +100,16 @@ def main():
   if args.windowsize <= 0:
     parser.error("window-size has to be greater than zero")
 
-  support = args.support
-  if args.support == 'hand+fixed': args.support = None
+  args.featdir = config.get('data', 'input')
 
-  db = bob.db.replay.Database()
+  machfile = os.path.join(args.inputdir, 'mlp.hdf5')
 
   def get_files(args, group, cls):
     return db.files(args.featdir, extension='.hdf5', support=args.support,
-        protocol='print', groups=(group,), cls=cls)
+        protocol=args.protocol, groups=(group,), cls=cls)
 
   # quickly load the development set and establish the threshold:
-  thres = ml.time.eval_threshold(args.inputdir, 'print', args.support,
+  thres = ml.time.eval_threshold(machfile, args.featdir, args.protocol, args.support,
       args.minhter, args.verbose)
 
   # runs the analysis
@@ -110,20 +117,18 @@ def main():
   test_real = get_files(args, 'test', 'real')
   test_attack = get_files(args, 'test', 'attack')
 
-  machfile = os.path.join(args.inputdir, 'mlp.hdf5')
-
   analyzer = ml.time.Analyzer(test_real.values(), test_attack.values(),
       machfile, thres, args.windowsize, args.overlap,
       args.average, args.verbose)
 
   outfile = os.path.join(args.inputdir, 'time-analysis-table.rst')
 
-  title = 'Time Analysis, Window *%d*, Overlap *%d*, Protocol *%s*, Support *%s*' % (args.windowsize, args.overlap, 'print', support)
+  title = 'Time Analysis, Window *%d*, Overlap *%d*, Protocol *%s*, Support *%s*' % (args.windowsize, args.overlap, args.protocol, args.support)
 
-  write_table(title, analyzer, open(outfile, 'wt'), args, 'print', support)
+  write_table(title, analyzer, open(outfile, 'wt'), args, args.protocol, args.support)
 
   if args.verbose: 
-    write_table(title, analyzer, sys.stdout, args, 'print', support)
+    write_table(title, analyzer, sys.stdout, args, args.protocol, args.support)
 
   outfile = os.path.join(args.inputdir,
       'time-analysis-misclassified-at-220.txt')

@@ -272,7 +272,19 @@ The 3 curves on Figure 4 at the paper relate to the different support types.
 Just repeat the procedure for every system trained with data for a particular
 support (equivalent for then entries in Table 2). The output for this script is
 dumped in PDF (plot) and text (``.rst`` file) on the directory containing the
-matching neural net (passed as parameter to ``--network-dir``).
+matching neural net you passed as input parameter.
+
+Dumping MLP Scores
+==================
+
+You can dump the scores for every input file in the ``clustered`` directory
+using the ``make_scores.py`` script::
+
+  $ ./bin/make_scores.py network-directory
+
+This should give you the detailed output of the MLP for every input file in the
+training, development and test sets. You can use these score files in your
+own score analysis routines, for example.
 
 Problems
 --------

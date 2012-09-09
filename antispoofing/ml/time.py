@@ -11,14 +11,11 @@ import bob
 import numpy
 from . import pack
 
-def eval_threshold(inputdir, protocol, support, minhter, verbose):
+def eval_threshold(machfile, datadir, protocol, support, minhter, verbose):
   """Evaluates the optimal threshold for a given MLP/dataset"""
   
   if verbose: 
     print "Establishing optimal separation threshold at development set..."
-
-  datadir = os.path.join(inputdir, 'dataset')
-  machfile = os.path.join(inputdir, 'mlp.hdf5')
 
   data = pack.replay([datadir], protocol, support, groups=('devel',),
     cls=('attack','real'))
