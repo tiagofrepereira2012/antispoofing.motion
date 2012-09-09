@@ -155,8 +155,9 @@ to parallalize the job submission using ``gridtk``.
 .. note::
 
   If you decide to run using the grid at Idiap, please note that our Lustre
-  filesystem does not work well with SQLite. So, do **not** run from
-  ``/idiap/temp``.
+  filesystem does not work well with SQLite. So, do **not** place the
+  ``xbob.db.replay`` package inside that filesystem. You can and **should**
+  save your results on ``/idiap/temp`` though.
 
 Calculate Frame Differences
 ===========================
