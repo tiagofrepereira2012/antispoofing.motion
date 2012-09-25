@@ -53,7 +53,7 @@ def eval_differences(previous, current, facebbx):
     bg = full - face
 
     # calculates the differences in the eyes and face reminder
-    from ..faceloc import Anthropometry19x19
+    from .faceloc import Anthropometry19x19
     eyesbbx = Anthropometry19x19(facebbx).eye_area()
     eyes_diff = full_diff[eyesbbx.y:(eyesbbx.y+eyesbbx.height),
         eyesbbx.x:(eyesbbx.x+eyesbbx.width)]
@@ -205,7 +205,7 @@ def eval_eyes_differences(previous, current, facebbx):
 
   if facebbx and facebbx.is_valid():
 
-    from ..faceloc import Anthropometry19x19
+    from .faceloc import Anthropometry19x19
     eyesbbx = Anthropometry19x19(facebbx).eye_area()
 
     prev = previous[eyesbbx.y:(eyesbbx.y+eyesbbx.height),
@@ -252,7 +252,7 @@ def eval_face_reminder_differences(previous, current, facebbx):
     face = face_diff.sum()
 
     # calculates the differences in the eyes and face reminder
-    from ..faceloc import Anthropometry19x19
+    from .faceloc import Anthropometry19x19
     eyesbbx = Anthropometry19x19(facebbx).eye_area()
 
     prev = previous[eyesbbx.y:(eyesbbx.y+eyesbbx.height),

@@ -11,7 +11,7 @@ import os
 import sys
 import bob
 import argparse
-from ... import ml
+from .. import ml
 import ConfigParser
 
 def main():

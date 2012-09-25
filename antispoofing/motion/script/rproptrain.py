@@ -15,7 +15,7 @@ import datetime
 import socket
 import bob
 import argparse
-from ... import ml
+from .. import ml
 import ConfigParser
 
 def main():
