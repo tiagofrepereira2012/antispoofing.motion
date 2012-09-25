@@ -30,7 +30,7 @@ def main():
   import numpy
   from xbob.db.replay import Database
 
-  protocols = Database().protocols()
+  protocols = [k.name() for k in Database().protocols()]
 
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
   INPUTDIR = os.path.join(basedir, 'framediff')
@@ -76,8 +76,7 @@ def main():
 
   db = Database()
 
-  process = db.files(directory=args.inputdir, extension='.hdf5', 
-      protocol=args.protocol, support=args.support)
+  process = db.objects(protocol=args.protocol, support=args.support)
   
   if args.grid_count:
     print len(process)
@@ -97,11 +96,11 @@ def main():
   sys.stdout.flush()
 
   counter = 0
-  for key, filename in process.items():
+  for obj in process.items():
     counter += 1
      
-    filename = os.path.expanduser(filename)
-    
+    filename = obj.make_path(args.inputdir, '.hdf5')
+ 
     sys.stdout.write("Processing file %s [%d/%d] " % (filename, counter, len(process)))
 
     input = bob.io.load(filename)
@@ -109,7 +108,7 @@ def main():
     d_face = cluster_5quantities(input[:,0], args.window_size, args.overlap)
     d_bg   = cluster_5quantities(input[:,1], args.window_size, args.overlap)
     arr = numpy.hstack((d_face, d_bg))
-    db.save_one(key, arr, directory=args.outputdir, extension='.hdf5')
+    obj.save(arr, directory=args.outputdir, extension='.hdf5')
     sys.stdout.write('Saving results to "%s"...\n' % args.outputdir)
     sys.stdout.flush()
 
