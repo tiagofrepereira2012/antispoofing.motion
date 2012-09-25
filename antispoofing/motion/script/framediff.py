@@ -18,7 +18,7 @@ def main():
   import numpy
   from xbob.db.replay import Database
 
-  protocols = Database().protocols()
+  protocols = [k.name for k in Database().protos()]
 
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
   INPUTDIR = os.path.join(basedir, 'database')
@@ -49,13 +49,12 @@ def main():
 
   if args.support == 'hand+fixed': args.support = ('hand', 'fixed')
 
-  from ...faceloc import read_face, expand_detections
+  from ..faceloc import read_face, expand_detections
   from .. import eval_face_differences, eval_background_differences
 
   db = Database()
 
-  process = db.files(directory=args.inputdir, extension='.mov', 
-      protocol=args.protocol, support=args.support)
+  process = db.objects(protocol=args.protocol, support=args.support)
 
   if args.grid_count:
     print len(process)
@@ -64,26 +63,20 @@ def main():
   # if we are on a grid environment, just find what I have to process.
   if os.environ.has_key('SGE_TASK_ID'):
     pos = int(os.environ['SGE_TASK_ID']) - 1
-    ordered_keys = sorted(process.keys())
-    if pos >= len(ordered_keys):
+    if pos >= len(process):
       raise RuntimeError, "Grid request for job %d on a setup with %d jobs" % \
-          (pos, len(ordered_keys))
-    key = ordered_keys[pos] # gets the right key
-    process = {key: process[key]}
-
-  # where to find the face bounding boxes
-  faceloc_dir = os.path.join(args.inputdir, 'face-locations')
+          (pos, len(process))
+    process = [process[pos]]
 
   counter = 0
-  for key, filename in process.items():
+  for obj in process:
     counter += 1
  
-    filename = os.path.expanduser(filename)
-
+    filename = obj.videofile(args.inputdir)
     input = bob.io.VideoReader(filename)
 
     # loads the face locations
-    flocfile = os.path.expanduser(db.paths([key], faceloc_dir, '.face')[0])
+    flocfile = obj.facefile(args.inputdir)
     locations = read_face(flocfile)
     locations = expand_detections(locations, input.number_of_frames)
 
@@ -114,7 +107,7 @@ def main():
 
     # saves the output
     arr = numpy.array(data, dtype='float64')
-    db.save_one(key, arr, directory=args.outputdir, extension='.hdf5')
+    obj.save(arr, directory=args.outputdir, extension='.hdf5')
     
     sys.stdout.write('\n')
     sys.stdout.flush()
