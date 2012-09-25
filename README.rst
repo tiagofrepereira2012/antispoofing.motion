@@ -181,7 +181,7 @@ the command line for instructions.
 
   To parallelize this job, do the following::
 
-    $ ./bin/jman submit --array=1200 ./bin/framediff.py /root/of/database results/framediff --grid
+    $ ./bin/jman submit --array=1200 ./bin/framediff.py /root/of/database results/framediff
 
   The `magic` number of `1200` entries can be found by executing::
 
@@ -208,7 +208,7 @@ instructions.
   This job is very fast and normally does not require parallelization. You can
   still do it with::
 
-    $ ./bin/jman submit --array=1200 ./bin/diffcluster.py results/framediff results/quantities --grid
+    $ ./bin/jman submit --array=1200 ./bin/diffcluster.py results/framediff results/quantities
 
 Training an MLP
 ===============

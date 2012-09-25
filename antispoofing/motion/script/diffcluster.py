@@ -56,14 +56,9 @@ def main():
   parser.add_argument('-o', '--overlap', dest="overlap", default=0, type=int,
       help="determines the window overlapping; this number has to be between 0 (no overlapping) and 'window-size'-1 (defaults to %(default)s)"),
 
-  # If set, assumes it is being run using a parametric grid job. It orders all
-  # ids to be processed and picks the one at the position given by
-  # ${SGE_TASK_ID}-1'). To avoid user confusion, this option is suppressed
-  # from the --help menu
-  parser.add_argument('--grid', dest='grid', action='store_true',
-      default=False, help=argparse.SUPPRESS)
   # The next option just returns the total number of cases we will be running
-  # It can be used to set jman --array option.
+  # It can be used to set jman --array option. To avoid user confusion, this
+  # option is suppressed # from the --help menu
   parser.add_argument('--grid-count', dest='grid_count', action='store_true',
       default=False, help=argparse.SUPPRESS)
 
@@ -89,7 +84,7 @@ def main():
     sys.exit(0)
  
   # if we are on a grid environment, just find what I have to process.
-  if args.grid:
+  if os.environ.has_key('SGE_TASK_ID'):
     pos = int(os.environ['SGE_TASK_ID']) - 1
     ordered_keys = sorted(process.keys())
     if pos >= len(ordered_keys):
