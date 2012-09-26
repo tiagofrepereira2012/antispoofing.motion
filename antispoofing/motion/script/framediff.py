@@ -18,7 +18,7 @@ def main():
   import numpy
   from xbob.db.replay import Database
 
-  protocols = [k.name for k in Database().protos()]
+  protocols = [k.name for k in Database().protocols()]
 
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
   INPUTDIR = os.path.join(basedir, 'database')
@@ -49,7 +49,7 @@ def main():
 
   if args.support == 'hand+fixed': args.support = ('hand', 'fixed')
 
-  from ..faceloc import read_face, expand_detections
+  from .. import faceloc
   from .. import eval_face_differences, eval_background_differences
 
   db = Database()
@@ -74,11 +74,7 @@ def main():
  
     filename = obj.videofile(args.inputdir)
     input = bob.io.VideoReader(filename)
-
-    # loads the face locations
-    flocfile = obj.facefile(args.inputdir)
-    locations = read_face(flocfile)
-    locations = expand_detections(locations, input.number_of_frames)
+    locations = faceloc.load(obj, args.inputdir)
 
     sys.stdout.write("Processing file %s (%d frames) [%d/%d]..." % (filename,
       input.number_of_frames, counter, len(process)))
@@ -87,27 +83,28 @@ def main():
     vin = input.load() # load all in one shot.
     prev = bob.ip.rgb_to_gray(vin[0,:,:,:])
     curr = numpy.empty_like(prev)
-    data = [(0.,0.)] #accounts for the first frame (no diff. yet)
+    data = numpy.zeros((len(vin), 2), dtype='float64')
+    data[0] = (numpy.NaN, numpy.NaN)
 
     for k in range(1, vin.shape[0]):
-      sys.stdout.write('.')
-      sys.stdout.flush()
       bob.ip.rgb_to_gray(vin[k,:,:,:], curr)
 
-      data.append(
-          (eval_face_differences(prev, curr, locations[k]),
-            eval_background_differences(prev, curr, locations[k], None)
-            )
-          )
+      if locations[k] and locations[k].is_valid():
+        sys.stdout.write('.')
+        data[k][0] = eval_face_differences(prev, curr, locations[k])
+        data[k][1] = eval_background_differences(prev, curr, locations[k], None)
+      else:
+        sys.stdout.write('x')
+        data[k] = (numpy.NaN, numpy.NaN)
+
+      sys.stdout.flush()
 
       # swap buffers: curr <=> prev
       tmp = prev
       prev = curr
       curr = tmp
 
-    # saves the output
-    arr = numpy.array(data, dtype='float64')
-    obj.save(arr, directory=args.outputdir, extension='.hdf5')
+    obj.save(data, args.outputdir, '.hdf5')
     
     sys.stdout.write('\n')
     sys.stdout.flush()

@@ -286,6 +286,14 @@ This should give you the detailed output of the MLP for every input file in the
 training, development and test sets. You can use these score files in your
 own score analysis routines, for example.
 
+.. note::
+
+  The score file format is an HDF5 file with a single array, which contains the
+  scores for every frame in the input video. Values which are marked as NaN
+  should be ignored by your procedure. The reason varies: it may mean no valid
+  face was detected on such a frame or that the motion-detection procedure
+  decided to skip (on user configuration) the analysis of that frame.
+
 Merging Scores
 ==============
 
@@ -298,16 +306,14 @@ package, you should use the script ``merge_scores.py``. You will have to
 specify how many of the scores in every video you will want to average and the
 input directory containing the scores files that will be merged. 
 
-The output of the program consists of a single 5-column formatted file with the
+The output of the program consists of three 5-column formatted files with the
 client identities and scores for **every video** in the input directory. A line
-in the output file corresponds to a video from the database. 
+in the output file corresponds to a video from the database.
 
 You run this program on the output of ``make_scores.py``. So, it should look
 like this if you followed the previous example::
 
-  $ ./bin/merge_scores.py scores/train motion-train.txt
-  $ ./bin/merge_scores.py scores/devel motion-devel.txt
-  $ ./bin/merge_scores.py socres/test motion-test.txt
+  $ ./bin/merge_scores.py scores/train
 
 The above commandline examples will generate 3 files containing the training,
 development and test scores, accumulated over each video in the respective

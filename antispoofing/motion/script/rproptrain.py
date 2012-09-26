@@ -22,7 +22,6 @@ def main():
   """Main method"""
   
   from xbob.db.replay import Database
-  protocols = Database().protocols()
 
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
 
@@ -48,7 +47,7 @@ def main():
   parser.add_argument('-V', '--verbose', action='store_true', dest='verbose',
       default=False, help='Increases this script verbosity')
 
-  protocols = Database().protocols()
+  protocols = [k.name for k in Database().protocols()]
 
   parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
       default='grandtest', choices=protocols, dest="protocol",
@@ -75,6 +74,7 @@ def main():
 
   use_outputdir = time.strftime(args.outputdir) #interpolate time
   use_outputdir = use_outputdir % os.environ #interpolate environment
+
   if os.path.exists(use_outputdir):
     if not args.overwrite:
       parser.error("output directory '%s' exists and the overwrite flag was not set" % use_outputdir)

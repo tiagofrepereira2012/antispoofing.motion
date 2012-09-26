@@ -62,26 +62,31 @@ def replay(inputs, protocol, support, groups=('train', 'devel', 'test'),
       }
   """
 
-  def make_arrayset(basedirs, stems, ext):
+  def merge(objs, basedirs, ext):
     """Loads the data from <basedir>/<stem><ext> and produces merged
     data sets of feature vectors.
     """
+
     retval = []
-    for S in stems: 
-      retval.append(numpy.hstack([bob.io.load(os.path.join(k, S) + ext) for k in basedirs]))
+    for obj in objs:
+      data = [obj.load(d, ext) for d in basedirs]
+      data = [k[~numpy.isnan(k.sum(axis=1)),:] for k in data]
+      retval.append(numpy.hstack(data))
     return numpy.vstack(retval)
 
   def group_files(db, inputs, protocol, support, group, cls, device):
     """DRY grouping method"""
 
-    files = db.files(support=support, protocol=protocol, groups=(group,),
-        cls=cls).values()
+    objs = db.objects(support=support, protocol=protocol, groups=(group,),
+        cls=cls)
+
+    def inclusion_test(obj, device):
+      return obj.is_real() or obj.get_attack().attack_device == device
     
     if device not in ('any', 'all', None):
-      search_str = 'attack_%s' % device
-      files = [k for k in files if k.find(search_str) >= 0]
+      objs = [k for k in objs if inclusion_test(k, device)]
 
-    return make_arrayset(inputs, files, '.hdf5')
+    return merge(objs, inputs, '.hdf5')
   
   if isinstance(groups, (str,unicode)): groups = (groups,)
   if isinstance(cls, (str,unicode)): cls = (cls,)

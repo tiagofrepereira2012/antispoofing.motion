@@ -20,7 +20,7 @@ def main():
   
   from xbob.db.replay import Database
 
-  protocols = Database().protocols()
+  protocols = [k.name for k in Database().protocols()]
 
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -62,42 +62,38 @@ def main():
   
     out = open(os.path.join(args.outputdir, '%s-5col.txt' % group), 'wt')
 
-    reals = db.files(protocol=args.protocol, support=args.support,
+    reals = db.objects(protocol=args.protocol, support=args.support,
         groups=(group,), cls=('real',))
-    attacks = db.files(protocol=args.protocol, support=args.support,
+    attacks = db.objects(protocol=args.protocol, support=args.support,
         groups=(group,), cls=('attack',))
     total = len(reals) + len(attacks)
 
     counter = 0
-    for key, value in reals.iteritems():
+    for obj in reals:
       counter += 1
-      fname = os.path.join(args.inputdir, value + '.hdf5')
 
       if args.verbose: 
-        print "Processing file %s [%d/%d]..." % (fname, counter, total)
+        print "Processing file %s [%d/%d]..." % (obj.path, counter, total)
 
-      arr = bob.io.load(fname)
+      arr = obj.load(args.inputdir, '.hdf5')
+      arr = arr[~numpy.isnan(arr)] #remove NaN entries => invalid
       avg = numpy.mean(arr[:args.average])
       
-      # finds the client id
-      client_id = int([k for k in os.path.basename(value).split('_') if k.find('client') == 0][0].replace('client', '').lstrip('0'))
+      out.write('%d %d %d %s %.5e\n' % (obj.client.id, obj.client.id,
+        obj.client.id, obj.path, avg))
 
-      out.write('%d %d %d %s %.5e\n' % (client_id, client_id, client_id, value, avg))
-
-    for key, value in attacks.iteritems():
+    for obj in attacks:
       counter += 1
-      fname = os.path.join(args.inputdir, value + '.hdf5')
 
       if args.verbose: 
-        print "Processing file %s [%d/%d]..." % (fname, counter, total)
+        print "Processing file %s [%d/%d]..." % (obj.path, counter, total)
 
-      arr = bob.io.load(fname)
+      arr = obj.load(args.inputdir, '.hdf5')
+      arr = arr[~numpy.isnan(arr)] #remove NaN entries => invalid
       avg = numpy.mean(arr[:args.average])
       
-      # finds the client id
-      client_id = int([k for k in os.path.basename(value).split('_') if k.find('client') == 0][0].replace('client', '').lstrip('0'))
-
-      out.write('%d %d attack %s %.5e\n' % (client_id, client_id, value, avg))
+      out.write('%d %d attack %s %.5e\n' % (obj.client.id, obj.client.id,
+        obj.path, avg))
 
     out.close()
 

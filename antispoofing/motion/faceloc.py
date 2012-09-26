@@ -7,7 +7,6 @@
 
 import bob
 import numpy
-from .anthropometry import * #classes for determining eye-locations from bb
 
 def expand_detections(detections, nframes, max_age=-1):
   """Calculates a list of "nframes" with the best possible detections taking
@@ -99,36 +98,35 @@ class BoundingBox:
       bob.ip.draw_box(image, self.x-k, self.y-k, self.width+2*k, 
           self.height+2*k)
 
-def read_face(filename):
-  """Reads a single file containing the KeyLemon face locations.
+def load(obj, database_root):
+  """Loads the face file and returns a dictionary of detections
+  
+  Keyword parameters:
 
-  Parameters:
-  filename -- the name of the text file containing the face locations
+  obj
+    The xbob.db.replay.File object containing the path to the database entry
+    to load
 
-  Returns:
-  A dictionary containing the frames in which detection occurred and with keys
-  corresponding to BoundingBox objects.
+  database_root
+    The input directory containing the database root installation
+
+  movie_length
+    The original number of frames in the input movie file
+
+  Returns a dictionary containing the frames in which detection occurred and
+  with keys corresponding to BoundingBox objects.
 
   * Bounding box top-left X coordinate
   * Bounding box top-left Y coordinate
   * Bounding box width
   * Bounding box height
+
+  The dictionary, before being returned, is passed through the method
+  :py:func:`expand_detections`.
   """
 
-  f = open(filename, 'rt') #opens the file for reading
-
-  # we read all lines that are not empty
-  lines = [k.strip() for k in f.readlines() if k.strip()]
-
-  # iteratively transform the data in every line and store it on the
-  # to-be-returned dictionary
+  nframes = len(bob.io.VideoReader(obj.videofile(database_root)))
   retval = {}
-  for i, line in enumerate(lines):
-    s = line.split()
-    if len(s) < 4:
-      raise RuntimeError, \
-          "Cannot make sense of data in line %d of file '%s': '%s'" % \
-          (i, filename, " ".join(line))
-    retval[int(s[0])] = BoundingBox(s[1], s[2], s[3], s[4])
-
-  return retval
+  for entry in obj.bbx(database_root):
+    retval[entry[0]] = BoundingBox(*[int(k) for k in entry[1:]])
+  return expand_detections(retval, nframes)

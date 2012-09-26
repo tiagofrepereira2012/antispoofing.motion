@@ -30,7 +30,7 @@ def main():
   import numpy
   from xbob.db.replay import Database
 
-  protocols = [k.name() for k in Database().protocols()]
+  protocols = [k.name for k in Database().protocols()]
 
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
   INPUTDIR = os.path.join(basedir, 'framediff')
@@ -85,31 +85,27 @@ def main():
   # if we are on a grid environment, just find what I have to process.
   if os.environ.has_key('SGE_TASK_ID'):
     pos = int(os.environ['SGE_TASK_ID']) - 1
-    ordered_keys = sorted(process.keys())
-    if pos >= len(ordered_keys):
+    if pos >= len(process):
       raise RuntimeError, "Grid request for job %d on a setup with %d jobs" % \
-          (pos, len(ordered_keys))
-    key = ordered_keys[pos] # gets the right key
-    process = {key: process[key]}
+          (pos, len(process))
+    process = [process[pos]]
 
   sys.stdout.write('Processing %d file(s)\n' % len(process))
   sys.stdout.flush()
 
   counter = 0
-  for obj in process.items():
+  for obj in process:
     counter += 1
      
-    filename = obj.make_path(args.inputdir, '.hdf5')
- 
-    sys.stdout.write("Processing file %s [%d/%d] " % (filename, counter, len(process)))
+    sys.stdout.write("Processing file %s [%d/%d] " % (obj.path, counter, len(process)))
 
-    input = bob.io.load(filename)
+    input = obj.load(args.inputdir, '.hdf5')
     
     d_face = cluster_5quantities(input[:,0], args.window_size, args.overlap)
     d_bg   = cluster_5quantities(input[:,1], args.window_size, args.overlap)
-    arr = numpy.hstack((d_face, d_bg))
-    obj.save(arr, directory=args.outputdir, extension='.hdf5')
+    
     sys.stdout.write('Saving results to "%s"...\n' % args.outputdir)
+    obj.save(numpy.hstack((d_face, d_bg)), args.outputdir, '.hdf5')
     sys.stdout.flush()
 
   sys.stdout.write('\n')
