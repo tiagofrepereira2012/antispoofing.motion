@@ -9,13 +9,18 @@
 import os
 import bob
 import numpy
-from . import pack
 
-def eval_threshold(machfile, datadir, protocol, support, minhter, verbose):
+def eval_threshold(machfile, datadir, db, minhter, verbose):
   """Evaluates the optimal threshold for a given MLP/dataset"""
   
   if verbose: 
     print "Establishing optimal separation threshold at development set..."
+
+  data = {
+      'train': dict(zip(('real', 'attack'), db.get_train_data())),
+      'devel': dict(zip(('real', 'attack'), db.get_devel_data())),
+      'test' : dict(zip(('real', 'attack'), db.get_test_data())),
+      }
 
   data = pack.replay([datadir], protocol, support, groups=('devel',),
     cls=('attack','real'))

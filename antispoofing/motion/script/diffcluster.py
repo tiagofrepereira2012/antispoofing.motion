@@ -28,9 +28,6 @@ def main():
 
   import bob
   import numpy
-  from xbob.db.replay import Database
-
-  protocols = [k.name for k in Database().protocols()]
 
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
   INPUTDIR = os.path.join(basedir, 'framediff')
@@ -42,15 +39,6 @@ def main():
       nargs='?', help='Base directory containing the frame differences to be treated by this procedure (defaults to "%(default)s")')
   parser.add_argument('outputdir', metavar='DIR', type=str, default=OUTPUTDIR,
       nargs='?', help='Base output directory for every file created by this procedure (defaults to "%(default)s")')
-  parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
-      default='grandtest', choices=protocols, dest="protocol",
-      help="The protocol type may be specified to subselect a smaller number of files to operate on (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(protocols)))
-
-  supports = ('fixed', 'hand', 'hand+fixed')
-
-  parser.add_argument('-s', '--support', metavar='SUPPORT', type=str,
-      default='hand+fixed', dest='support', choices=supports, help="If you would like to select a specific support to be used, use this option (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(supports)))
-
   parser.add_argument('-n', '--window-size', dest="window_size", default=20,
       type=int, help="determines the window size to be used when clustering frame-difference observations (defaults to %(default)s)"),
   parser.add_argument('-o', '--overlap', dest="overlap", default=0, type=int,
@@ -62,6 +50,11 @@ def main():
   parser.add_argument('--grid-count', dest='grid_count', action='store_true',
       default=False, help=argparse.SUPPRESS)
 
+  # Adds database support using the common infrastructure
+  # N.B.: Only databases with 'video' support
+  import antispoofing.utils.db 
+  antispoofing.utils.db.Database.create_parser(parser, 'video')
+
   args = parser.parse_args()
 
   # checks window size and overlap
@@ -70,14 +63,14 @@ def main():
   if args.overlap >= args.window_size or args.overlap < 0:
     parser.error("overlap has to be smaller than window-size and greater or equal zero")
 
-  if args.support == 'hand+fixed': args.support = ('hand', 'fixed')
-
   from .. import cluster_5quantities
 
-  db = Database()
+  # Creates an instance of the database
+  db = args.cls(args)
 
-  process = db.objects(protocol=args.protocol, support=args.support)
-  
+  real, attack = db.get_all_data()
+  process = real + attack
+
   if args.grid_count:
     print len(process)
     sys.exit(0)
@@ -96,8 +89,8 @@ def main():
   counter = 0
   for obj in process:
     counter += 1
-     
-    sys.stdout.write("Processing file %s [%d/%d] " % (obj.path, counter, len(process)))
+
+    sys.stdout.write("Processing file %s [%d/%d] " % (obj.make_path(args.inputdir, '.hdf5'), counter, len(process)))
 
     input = obj.load(args.inputdir, '.hdf5')
     

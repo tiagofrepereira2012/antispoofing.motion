@@ -14,6 +14,7 @@ import time
 import datetime
 import socket
 import bob
+import numpy
 import argparse
 from .. import ml
 import ConfigParser
@@ -21,17 +22,15 @@ import ConfigParser
 def main():
   """Main method"""
   
-  from xbob.db.replay import Database
-
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
 
-  INPUTDIR = os.path.join(basedir, 'clustered')
+  INPUTDIR = os.path.join(basedir, 'quantities')
   OUTPUTDIR = os.path.join(basedir, 'mlp')
 
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument('inputdir', metavar='DIR', type=str, default=INPUTDIR, nargs='?', help='Base directory containing the 5-quantities to be loaded. Final MLP input will be generated from the input directory and concatenated column-wise to form the final training matrix (defaults to "%(default)s").')
-  parser.add_argument('outputdir', metavar='DIR', type=str, default=OUTPUTDIR, nargs='?', help='Base directory that will be used to save the results. The given value will be interpolated with time.strftime and then, os.environ (in this order), so you can include %%()s strings (e.g. %(SGE_TASK_ID)s) to make up the final output directory path (defaults to "%(default)s").')
+  parser.add_argument('outputdir', metavar='DIR', type=str, default=OUTPUTDIR, nargs='?', help='Base directory that will be used to save the results. The given value will be interpolated with time.strftime and then, os.environ (in this order), so you can include %%()s strings (e.g. %%(SGE_TASK_ID)s) to make up the final output directory path (defaults to "%(default)s").')
   parser.add_argument('-b', '--batch-size', metavar='INT', type=int,
       dest='batch', default=200, help='The number of samples per training iteration. Good values are greater than 100. Defaults to %(default)s')
   parser.add_argument('-e', '--epoch', metavar='INT', type=int,
@@ -47,16 +46,10 @@ def main():
   parser.add_argument('-V', '--verbose', action='store_true', dest='verbose',
       default=False, help='Increases this script verbosity')
 
-  protocols = [k.name for k in Database().protocols()]
-
-  parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
-      default='grandtest', choices=protocols, dest="protocol",
-      help="The protocol type may be specified instead of the the id switch to subselect a smaller number of files to operate on (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(protocols)))
-
-  supports = ('fixed', 'hand', 'hand+fixed')
-
-  parser.add_argument('-s', '--support', metavar='SUPPORT', type=str, 
-      default='hand+fixed', dest='support', choices=supports, help="If you would like to select a specific support to be used, use this option (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(supports))) 
+  # Adds database support using the common infrastructure
+  # N.B.: Only databases with 'video' support
+  import antispoofing.utils.db 
+  antispoofing.utils.db.Database.create_parser(parser, 'video')
 
   args = parser.parse_args()
 
@@ -69,8 +62,6 @@ def main():
 
   if not os.path.exists(args.inputdir):
     parser.error("input directory `%s' does not exist" % args.inputdir)
-
-  if args.support == 'hand+fixed': args.support = ('hand', 'fixed')
 
   use_outputdir = time.strftime(args.outputdir) #interpolate time
   use_outputdir = use_outputdir % os.environ #interpolate environment
@@ -87,17 +78,25 @@ def main():
   abspath = os.path.abspath(args.inputdir)
   use_inputdir.append(abspath)
 
-  if args.verbose: print "Loading input files for protocol:%s, support:%s..." \
-      % (args.protocol, args.support)
-  data = ml.pack.replay(use_inputdir, args.protocol, args.support)
-  if args.verbose:
-    print "Train/real  :", len(data['train']['real'])
-    print "Train/attack:", len(data['train']['attack'])
-    print "Devel/real  :", len(data['devel']['real'])
-    print "Devel/attack:", len(data['devel']['attack'])
-    print "Test /real  :", len(data['test']['real'])
-    print "Test /attack:", len(data['test']['attack'])
+  if args.verbose: print "Loading non-NaN entries from input files at '%s' database..." % args.name
+  db = args.cls(args) 
+
+  data = {
+      'train': dict(zip(('real', 'attack'), db.get_train_data())),
+      'devel': dict(zip(('real', 'attack'), db.get_devel_data())),
+      'test' : dict(zip(('real', 'attack'), db.get_test_data())),
+      }
   
+  def merge_data(flist):
+    d = bob.io.load([k.make_path(use_inputdir[0], '.hdf5') for k in flist])
+    return d[~numpy.isnan(d.sum(axis=1)),:]
+
+  for key in data.keys():
+    for cls in data[key].keys():
+      if args.verbose: print "Loading %-5s/%-6s:" % (key, cls),
+      data[key][cls] = merge_data(data[key][cls])
+      if args.verbose: print len(data[key][cls])
+
   if args.verbose: print "Training MLP..."
   mlp, evolution = ml.rprop.make_mlp((data['train']['real'],
     data['train']['attack']), (data['devel']['real'], data['devel']['attack']),
@@ -107,6 +106,8 @@ def main():
   if args.verbose: print "Saving session information..."
   paramfile.add_section('data')
   datapath = [os.path.realpath(k) for k in use_inputdir]
+  paramfile.set('data', 'database', args.name)
+  #paramfile.set('data', 'database-args', db.args())
   paramfile.set('data', 'input', '\n'.join(datapath))
   paramfile.set('data', 'train-real', str(len(data['train']['real'])))
   paramfile.set('data', 'train-attack', str(len(data['train']['attack'])))
@@ -122,12 +123,6 @@ def main():
   paramfile.set('mlp', 'maximum-iterations', str(args.maxiter))
   cmdline = [os.path.realpath(sys.argv[0])] + sys.argv[1:]
   paramfile.set('mlp', 'command-line', ' '.join(cmdline))
-  paramfile.set('mlp', 'protocol', args.protocol)
-  write_support = args.support
-  if isinstance(write_support, (tuple,list)):
-    write_support = '\n'.join(args.support)
-  elif write_support is None: write_support = '\n'.join(('hand','fixed'))
-  paramfile.set('mlp', 'support', write_support)
   
   if args.verbose: print "Saving MLP..."
   mlpfile = bob.io.HDF5File(os.path.join(use_outputdir, 'mlp.hdf5'),'w')

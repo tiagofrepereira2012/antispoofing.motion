@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 setup(
 
     name='antispoofing.motion',
-    version='1.0.2',
+    version='1.1.0',
     description='Motion counter-measures for the REPLAY-ATTACK database',
     url='http://pypi.python.org/pypi/antispoofing.motion',
     license='GPLv3',
@@ -29,7 +29,7 @@ setup(
 
     install_requires=[
       "setuptools",
-      "bob >= 1.1.0a0",
+      "bob >= 1.1.0",
       "xbob.db.replay",
     ],
 

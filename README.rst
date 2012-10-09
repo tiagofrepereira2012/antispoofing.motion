@@ -151,41 +151,35 @@ The following sections will explain how to reproduce the paper results in
 single (non-gridified) jobs. A note will be given where relevant explaining how
 to parallalize the job submission using ``gridtk``.
 
-.. note::
-
-  If you decide to run using the grid at Idiap, please note that our Lustre
-  filesystem does not work well with SQLite. So, do **not** place the
-  ``xbob.db.replay`` package inside that filesystem. You can and **should**
-  save your results on ``/idiap/temp`` though.
-
 Calculate Frame Differences
 ===========================
 
 The first stage of the process is to calculate the normalized frame differences
 using video sequences. The program that will do that should be sitting in
-`bin/framediff.py`. It can calculate normalize frame differences in distinct
+``bin/framediff.py``. It can calculate normalize frame differences in distinct
 parts of the scene (given you provide face locations for each of the frames in
 all video sequences to be analyzed).
 
-To execute the frame difference process to all videos in the PRINT-ATTACK
+To execute the frame difference process to all videos in the REPLAY-ATTACK
 database, just execute::
 
-  $ ./bin/framediff.py /root/of/database results/framediff
+  $ ./bin/framediff.py /root/of/database results/framediff replay
 
-There are more options for the `framediff.py` script you can use (such as the
-sub-protocol selection). Note that, by default, all applications are tunned to
-work with the **whole** of the replay attack database. Just type `--help` at
-the command line for instructions.
+There are more options for the ``framediff.py`` script you can use (such as the
+sub-protocol selection for the Replay Attack database). Note that, by default,
+all applications are tunned to work with the **whole** of the database.  Just
+type ``--help`` **after** the keyword ``replay`` at the command line for
+instructions.
 
 .. note::
 
   To parallelize this job, do the following::
 
-    $ ./bin/jman submit --array=1200 ./bin/framediff.py /root/of/database results/framediff
+    $ ./bin/jman submit --array=1200 ./bin/framediff.py /root/of/database results/framediff replay
 
   The `magic` number of `1200` entries can be found by executing::
 
-    $ ./bin/framediff.py --grid-count
+    $ ./bin/framediff.py --grid-count replay
 
   Which just prints the number of jobs it requires for the grid execution.
 
@@ -197,7 +191,7 @@ quantities that are required for the detection process. To reproduce the
 results in the paper, we accumulate the results in windows of 20 frames,
 without overlap::
 
-  $ ./bin/diffcluster.py results/framediff results/quantities
+  $ ./bin/diffcluster.py results/framediff results/quantities replay
 
 There are more options for the `diffcluster.py` script you can use (such as the
 sub-protocol selection). Just type `--help` at the command line for
@@ -208,7 +202,7 @@ instructions.
   This job is very fast and normally does not require parallelization. You can
   still do it with::
 
-    $ ./bin/jman submit --array=1200 ./bin/diffcluster.py results/framediff results/quantities
+    $ ./bin/jman submit --array=1200 ./bin/diffcluster.py results/framediff results/quantities replay
 
 Training an MLP
 ===============
