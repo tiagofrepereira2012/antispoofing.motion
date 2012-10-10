@@ -73,7 +73,7 @@ def decisions(data, threshold, average=False, verbose=False):
     S = bob.io.load(filename)
     if not average: #threshold before
       S = numpy.array([apply_threshold(S[k], threshold) \
-          for k in range(S.size)])
+          for k in range(len(S))])
     decisions.append(thresholded_running_average(S))
   return decisions
 
@@ -90,27 +90,39 @@ def frfa_list(real, attack, threshold, average=False, verbose=False):
   fr = []
   fa = []
   for k in range(0, maxtime):
+
     fr_k = [] #false rejections for k=k
-    for i, rd in enumerate(real_decisions):
-      if not numpy.isnan(rd[k]) and rd[k] < 0: fr_k.append(real[i])
+    real_round = [d[k] for d in real_decisions]
+    if numpy.isnan(real_round).all(): fr_k = None
+    else: # this is a valid round, process it 
+      for i, rd in enumerate(real_round):
+        # if the score is NaN, assume it is a real-access
+        if not numpy.isnan(rd) and rd < 0: fr_k.append(real[i])
+
     fa_k = [] #false accepts for k=k
-    for i, ad in enumerate(attack_decisions):
-      if not numpy.isnan(ad[k]) and ad[k] >= 0: fa_k.append(attack[i])
+    attack_round = [d[k] for d in attack_decisions]
+    if numpy.isnan(attack_round).all(): fa_k = None
+    else:
+      # if the score is NaN, assume it is a real-access
+      for i, ad in enumerate(attack_round):
+        if numpy.isnan(ad) or ad >= 0: fa_k.append(attack[i])
+
     fr.append(fr_k)
     fa.append(fa_k)
 
   return fr, fa
-  
-def instantaneous_decisions(data, machine, threshold, verbose=False):
+
+def instantaneous_decisions(data, threshold, verbose=False):
   """Returns a list of booleans (-1, +1) indicating the decisions through time
   for all input data.
   """
 
   decisions = []
-  for filename in data:
-    if verbose: print "Scoring file %s..." % filename
-    S = scores(filename)
-    S = [apply_threshold(S[k], threshold) for k in range(S.size)]
+  for i, filename in enumerate(data):
+    if verbose: 
+      print "Thresholding file %s [%d/%d]..." % (filename, i+1, len(data))
+    S = bob.io.load(filename)
+    S = [apply_threshold(k, threshold) for k in S]
     decisions.append(S)
   return decisions
 
@@ -128,12 +140,23 @@ def instantaneous_frfa_list(real, attack, threshold, verbose=False):
   fr = []
   fa = []
   for k in range(0, maxtime):
+
     fr_k = [] #false rejections for k=k
-    for i, rd in enumerate(real_decisions):
-      if not numpy.isnan(rd[k]) and rd[k] < 0: fr_k.append(real[i])
+    real_round = [d[k] for d in real_decisions]
+    if numpy.isnan(real_round).all(): fr_k = None
+    else: # this is a valid round, process it 
+      for i, rd in enumerate(real_round):
+        # if the score is NaN, assume it is a real-access
+        if not numpy.isnan(rd) and rd < 0: fr_k.append(real[i])
+
     fa_k = [] #false accepts for k=k
-    for i, ad in enumerate(attack_decisions):
-      if not numpy.isnan(ad[k]) and ad[k] < 0: fa_k.append(attack[i])
+    attack_round = [d[k] for d in attack_decisions]
+    if numpy.isnan(attack_round).all(): fa_k = None
+    else:
+      # if the score is NaN, assume it is a real-access
+      for i, ad in enumerate(attack_round):
+        if numpy.isnan(ad) or ad >= 0: fa_k.append(attack[i])
+
     fr.append(fr_k)
     fa.append(fa_k)
 
@@ -158,14 +181,13 @@ class Analyzer:
     self.instd = {}
 
     for i, (fr, fa) in enumerate(zip(fr, fa)):
-      realtime = (i*(windowsize-overlap)) + windowsize
-      self.instd[realtime] = {}
-      self.instd[realtime]['frr'] = 100*float(len(fr))/len(real_files)
-      self.instd[realtime]['fr'] = fr
-      self.instd[realtime]['far'] = 100*float(len(fa))/len(attack_files)
-      self.instd[realtime]['fa'] = fa
-      self.instd[realtime]['hter'] = 0.5 * (self.instd[realtime]['far'] + \
-          self.instd[realtime]['frr'])
+      if fr is None and fa is None: continue
+      self.instd[i] = {}
+      self.instd[i]['frr'] = 100*float(len(fr))/len(real_files)
+      self.instd[i]['fr'] = fr
+      self.instd[i]['far'] = 100*float(len(fa))/len(attack_files)
+      self.instd[i]['fa'] = fa
+      self.instd[i]['hter'] = 0.5 * (self.instd[i]['far']+self.instd[i]['frr'])
 
     # calculates the averaged lists
     (fr, fa) = frfa_list(real_files, attack_files,
@@ -174,14 +196,13 @@ class Analyzer:
     self.d = {}
 
     for i, (fr, fa) in enumerate(zip(fr, fa)):
-      realtime = (i*(windowsize-overlap)) + windowsize
-      self.d[realtime] = {}
-      self.d[realtime]['frr'] = 100*float(len(fr))/len(real_files)
-      self.d[realtime]['fr'] = fr
-      self.d[realtime]['far'] = 100*float(len(fa))/len(attack_files)
-      self.d[realtime]['fa'] = fa
-      self.d[realtime]['hter'] = 0.5 * (self.d[realtime]['far'] + \
-          self.d[realtime]['frr'])
+      if fr is None and fa is None: continue
+      self.d[i] = {}
+      self.d[i]['frr'] = 100*float(len(fr))/len(real_files)
+      self.d[i]['fr'] = fr
+      self.d[i]['far'] = 100*float(len(fa))/len(attack_files)
+      self.d[i]['fa'] = fa
+      self.d[i]['hter'] = 0.5 * (self.d[i]['far'] + self.d[i]['frr'])
 
   def write_table(self, file, instantaneous=False):
     """Writes a nicely formatted table containing the time-analysis"""

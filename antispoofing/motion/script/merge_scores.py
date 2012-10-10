@@ -18,42 +18,34 @@ import argparse
 def main():
   """Main method"""
   
-  from xbob.db.replay import Database
-
-  protocols = [k.name for k in Database().protocols()]
-
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
+
   parser.add_argument('inputdir', metavar='DIR', type=str, help='Base directory containing the scores to be loaded and merged')
+
   parser.add_argument('outputdir', metavar='DIR', type=str, help='Base output directory for every file created by this procedure')
   
-  parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str,
-      default='grandtest', choices=protocols, dest="protocol",
-      help="The protocol type may be specified to subselect a smaller number of files to operate on (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(protocols)))
-
-  supports = ('fixed', 'hand', 'hand+fixed')
-
-  parser.add_argument('-s', '--support', metavar='SUPPORT', type=str, 
-      default='hand+fixed', dest='support', choices=supports, help="If you would like to select a specific support to be used, use this option (one of '%s'; defaults to '%%(default)s')" % '|'.join(sorted(supports))) 
-
   parser.add_argument('-n', '--average', metavar='INT', type=int, default=11,
       dest='average', help="Number of scores to merge from every file (defaults to %(default)s)")
 
   parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
       default=False, help='Increases this script verbosity')
 
+  # Adds database support using the common infrastructure
+  # N.B.: Only databases with 'video' support
+  import antispoofing.utils.db 
+  antispoofing.utils.db.Database.create_parser(parser, 'video')
+
   args = parser.parse_args()
 
   if not os.path.exists(args.inputdir):
     parser.error("input directory `%s' does not exist" % args.inputdir)
 
-  if args.support == 'hand+fixed': args.support = ('hand', 'fixed')
-
   if not os.path.exists(args.outputdir):
     if args.verbose: print "Creating output directory %s..." % args.outputdir
     os.makedirs(args.outputdir)
 
-  db = Database()
+  db = args.cls(args)
 
   def write_file(group):
 
@@ -62,10 +54,11 @@ def main():
   
     out = open(os.path.join(args.outputdir, '%s-5col.txt' % group), 'wt')
 
-    reals = db.objects(protocol=args.protocol, support=args.support,
-        groups=(group,), cls=('real',))
-    attacks = db.objects(protocol=args.protocol, support=args.support,
-        groups=(group,), cls=('attack',))
+    if group == 'train': reals, attacks = db.get_train_data()
+    elif group == 'devel': reals, attacks = db.get_devel_data()
+    elif group == 'test': reals, attacks = db.get_test_data()
+    else: raise RuntimeError, "group parameter has to be train, devel or test"
+
     total = len(reals) + len(attacks)
 
     counter = 0
@@ -73,27 +66,33 @@ def main():
       counter += 1
 
       if args.verbose: 
-        print "Processing file %s [%d/%d]..." % (obj.path, counter, total)
+        print "Processing file %s [%d/%d]..." % (obj.make_path(), counter, total)
 
       arr = obj.load(args.inputdir, '.hdf5')
       arr = arr[~numpy.isnan(arr)] #remove NaN entries => invalid
       avg = numpy.mean(arr[:args.average])
+
+      # This is a tremendous disencapsulation, but can't do it better for now
+      client_id = obj._File__f.client.id
       
-      out.write('%d %d %d %s %.5e\n' % (obj.client.id, obj.client.id,
-        obj.client.id, obj.path, avg))
+      out.write('%d %d %d %s %.5e\n' % (client_id, client_id, client_id,
+        obj.make_path(), avg))
 
     for obj in attacks:
       counter += 1
 
       if args.verbose: 
-        print "Processing file %s [%d/%d]..." % (obj.path, counter, total)
+        print "Processing file %s [%d/%d]..." % (obj.make_path(), counter, total)
 
       arr = obj.load(args.inputdir, '.hdf5')
       arr = arr[~numpy.isnan(arr)] #remove NaN entries => invalid
       avg = numpy.mean(arr[:args.average])
       
-      out.write('%d %d attack %s %.5e\n' % (obj.client.id, obj.client.id,
-        obj.path, avg))
+      # This is a tremendous disencapsulation, but can't do it better for now
+      client_id = obj._File__f.client.id
+      
+      out.write('%d %d attack %s %.5e\n' % (client_id, client_id,
+        obj.make_path(), avg))
 
     out.close()
 

@@ -295,13 +295,13 @@ Merging Scores
 ==============
 
 If you wish to create a single `5-column format file
-<http://www.idiap.ch/software/bob/docs/nightlies/last/bob/sphinx/html/measure/index.html?highlight=five_col#bob.measure.load.five_column>`_
+<http://www.idiap.ch/software/bob/docs/releases/last/sphinx/html/measure/index.html?highlight=five#bob.measure.load.five_column>`_
 by combining this counter-measure scores for every video into a single file
 that can be fed to external analysis utilities such as our
 `antispoofing.evaluation <http://pypi.python.org/pypi/antispoofing.evaluation>`
 package, you should use the script ``motion_merge_scores.py``. You will have to
 specify how many of the scores in every video you will want to average and the
-input directory containing the scores files that will be merged. 
+input directory containing the scores files that will be merged.
 
 The output of the program consists of three 5-column formatted files with the
 client identities and scores for **every video** in the input directory. A line
@@ -310,7 +310,7 @@ in the output file corresponds to a video from the database.
 You run this program on the output of ``motion_make_scores.py``. So, it should
 look like this if you followed the previous example::
 
-  $ ./bin/motion_merge_scores.py scores/train
+  $ ./bin/motion_merge_scores.py results/mlp-scores results/mlp-merged replay
 
 The above commandline examples will generate 3 files containing the training,
 development and test scores, accumulated over each video in the respective
