@@ -104,10 +104,20 @@ def main():
     args.verbose)
 
   if args.verbose: print "Saving session information..."
+  def get_version(package):
+    __import__('pkg_resources').require(package)[0].version
+
+  paramfile.add_section('software')
+  for package in __import__('pkg_resources').require('antispoofing.motion'):
+    paramfile.set('software', package.key, package.version)
+
+  paramfile.add_section('environment')
+  cmdline = [os.path.realpath(sys.argv[0])] + sys.argv[1:]
+  paramfile.set('environment', 'command-line', ' '.join(cmdline))
+
   paramfile.add_section('data')
   datapath = [os.path.realpath(k) for k in use_inputdir]
   paramfile.set('data', 'database', args.name)
-  #paramfile.set('data', 'database-args', db.args())
   paramfile.set('data', 'input', '\n'.join(datapath))
   paramfile.set('data', 'train-real', str(len(data['train']['real'])))
   paramfile.set('data', 'train-attack', str(len(data['train']['attack'])))
@@ -117,12 +127,10 @@ def main():
   paramfile.set('data', 'test-attack', str(len(data['test']['attack'])))
 
   paramfile.add_section('mlp')
+  paramfile.set('mlp', 'shape', '-'.join([str(k) for k in mlp.shape]))
   paramfile.set('mlp', 'batch-size', str(args.batch))
   paramfile.set('mlp', 'epoch-size', str(args.epoch))
-  paramfile.set('mlp', 'hidden-neurons', str(args.nhidden))
   paramfile.set('mlp', 'maximum-iterations', str(args.maxiter))
-  cmdline = [os.path.realpath(sys.argv[0])] + sys.argv[1:]
-  paramfile.set('mlp', 'command-line', ' '.join(cmdline))
   
   if args.verbose: print "Saving MLP..."
   mlpfile = bob.io.HDF5File(os.path.join(use_outputdir, 'mlp.hdf5'),'w')

@@ -12,18 +12,15 @@ import sys
 import bob
 import argparse
 from .. import ml
-from xbob.db.replay import Database
 import ConfigParser
 
-def write_table(title, analyzer, file, args, protocol, support):
+def write_table(title, analyzer, file, args):
 
   file.write( (len(title)+2) * '=' + '\n' )
   file.write( ' %s \n' % title )
   file.write( (len(title)+2) * '=' + '\n' )
-  file.write('\nInput directory\n  %s\n' % args.inputdir)
-  file.write('\nFeat. directory\n  %s\n\n' % args.featdir)
 
-  subtitle = 'Instantaneous Analysis'
+  subtitle = '\nInstantaneous Analysis'
   file.write(subtitle + '\n')
   file.write(len(subtitle)*'-' + '\n\n')
 
@@ -40,25 +37,16 @@ def write_table(title, analyzer, file, args, protocol, support):
 
 def main():
 
-  db = Database()
-
-  protocols = db.protocols()
-
-  support_choices = ('hand', 'fixed', 'hand+fixed')
-
   basedir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
-
-  NETWORK_DIR = os.path.join(basedir, 'mlp')
+  INPUTDIR = os.path.join(basedir, 'scores')
+  OUTPUTDIR = os.path.join(basedir, 'time-analysis')
 
   parser = argparse.ArgumentParser(description=__doc__,
       formatter_class=argparse.RawDescriptionHelpFormatter)
 
-  parser.add_argument('inputdir', metavar='DIR', type=str, nargs='?',
-      default=NETWORK_DIR, help='directory containing the files to be analyzed - this is the directory containing the mlp machine')
-
-  parser.add_argument('-p', '--protocol', metavar='PROTOCOL', type=str, choices=protocols, dest="protocol", help='The protocol type may be specified to subselect a smaller number of files to operate on (one of "%s") - if not given, it is read from the network directory file called "session.txt"' % '|'.join(sorted(protocols)))
-
-  parser.add_argument('-s', '--support', metavar='SUPPORT', type=str, dest='support', help='if set, limit performance analysis to a specific support - if not given, it is read from the network directory file called "session.txt"')
+  parser.add_argument('inputdir', metavar='DIR', type=str, nargs='?', default=INPUTDIR, help='directory containing the scores to be analyzed (defaults to "%(default)s").')
+ 
+  parser.add_argument('outputdir', metavar='DIR', type=str, default=OUTPUTDIR, nargs='?', help='Base directory that will be used to save the results (defaults to "%(default)s").')
 
   parser.add_argument('-w', '--windowsize', metavar='INT', type=int,
       default=20, help='size of the window used when generating the input data - this variable is used to calculate the time variable for plots and tables (defaults to %(default)s)')
@@ -75,21 +63,19 @@ def main():
   parser.add_argument('-v', '--verbose', default=False, action='store_true',
       dest='verbose', help='increases the script verbosity')
 
+  # Adds database support using the common infrastructure
+  # N.B.: Only databases with 'video' support
+  import antispoofing.utils.db 
+  antispoofing.utils.db.Database.create_parser(parser, 'video')
+
   args = parser.parse_args()
 
   if not os.path.exists(args.inputdir):
     parser.error("input directory does not exist")
 
-  config = ConfigParser.SafeConfigParser()
-  config.readfp(open(os.path.join(args.inputdir, "session.txt"), 'rb'))
-
-  if args.protocol is None:
-    args.protocol = config.get('mlp', 'protocol')
-
-  if args.support is None:
-    args.support = config.get('mlp', 'support').split()
-  elif args.support == 'hand+fixed':
-    args.support = args.support.split('+')
+  if not os.path.exists(args.outputdir):
+    if args.verbose: print "Creating output directory `%s'..." % args.outputdir
+    bob.db.utils.makedirs_safe(args.outputdir)
 
   if args.overlap >= args.windowsize:
     parser.error("overlap has to be smaller than window-size")
@@ -100,35 +86,30 @@ def main():
   if args.windowsize <= 0:
     parser.error("window-size has to be greater than zero")
 
-  args.featdir = config.get('data', 'input')
+  db = args.cls(args)
+  devel = dict(zip(('real', 'attack'), db.get_devel_data()))
+  test = dict(zip(('real', 'attack'), db.get_test_data()))
 
-  machfile = os.path.join(args.inputdir, 'mlp.hdf5')
-
-  def get_files(args, group, cls):
-    return db.files(args.featdir, extension='.hdf5', support=args.support,
-        protocol=args.protocol, groups=(group,), cls=cls)
+  # make full paths
+  devel['real'] = [k.make_path(args.inputdir, '.hdf5') for k in devel['real']]
+  devel['attack'] = [k.make_path(args.inputdir, '.hdf5') for k in devel['attack']]
+  test['real'] = [k.make_path(args.inputdir, '.hdf5') for k in test['real']]
+  test['attack'] = [k.make_path(args.inputdir, '.hdf5') for k in test['attack']]
 
   # quickly load the development set and establish the threshold:
-  thres = ml.time.eval_threshold(machfile, args.featdir, args.protocol, args.support,
+  thres = ml.time.eval_threshold(devel['real'], devel['attack'],
       args.minhter, args.verbose)
 
-  # runs the analysis
-  if args.verbose: print "Querying replay attack database..."
-  test_real = get_files(args, 'test', 'real')
-  test_attack = get_files(args, 'test', 'attack')
-
-  analyzer = ml.time.Analyzer(test_real.values(), test_attack.values(),
-      machfile, thres, args.windowsize, args.overlap,
-      args.average, args.verbose)
+  analyzer = ml.time.Analyzer(test['real'], test['attack'], thres, 
+      args.windowsize, args.overlap, args.average, args.verbose)
 
   outfile = os.path.join(args.inputdir, 'time-analysis-table.rst')
 
-  title = 'Time Analysis, Window *%d*, Overlap *%d*, Protocol *%s*, Support *%s*' % (args.windowsize, args.overlap, args.protocol, args.support)
+  title = 'Time Analysis, Window *%d*, Overlap *%d*' % (args.windowsize, args.overlap)
 
-  write_table(title, analyzer, open(outfile, 'wt'), args, args.protocol, args.support)
+  write_table(title, analyzer, open(outfile, 'wt'), args)
 
-  if args.verbose: 
-    write_table(title, analyzer, sys.stdout, args, args.protocol, args.support)
+  if args.verbose: write_table(title, analyzer, sys.stdout, args)
 
   outfile = os.path.join(args.inputdir,
       'time-analysis-misclassified-at-220.txt')

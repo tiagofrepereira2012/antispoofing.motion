@@ -156,30 +156,30 @@ Calculate Frame Differences
 
 The first stage of the process is to calculate the normalized frame differences
 using video sequences. The program that will do that should be sitting in
-``bin/framediff.py``. It can calculate normalize frame differences in distinct
+``bin/motion_framediff.py``. It can calculate normalize frame differences in distinct
 parts of the scene (given you provide face locations for each of the frames in
 all video sequences to be analyzed).
 
 To execute the frame difference process to all videos in the REPLAY-ATTACK
 database, just execute::
 
-  $ ./bin/framediff.py /root/of/database results/framediff replay
+  $ ./bin/motion_framediff.py /root/of/database results/framediff replay
 
-There are more options for the ``framediff.py`` script you can use (such as the
-sub-protocol selection for the Replay Attack database). Note that, by default,
-all applications are tunned to work with the **whole** of the database.  Just
-type ``--help`` **after** the keyword ``replay`` at the command line for
-instructions.
+There are more options for the ``motion_framediff.py`` script you can use (such
+as the sub-protocol selection for the Replay Attack database). Note that, by
+default, all applications are tunned to work with the **whole** of the
+database.  Just type ``--help`` **after** the keyword ``replay`` at the command
+line for instructions.
 
 .. note::
 
   To parallelize this job, do the following::
 
-    $ ./bin/jman submit --array=1200 ./bin/framediff.py /root/of/database results/framediff replay
+    $ ./bin/jman submit --array=1200 ./bin/motion_framediff.py /root/of/database results/framediff replay
 
   The `magic` number of `1200` entries can be found by executing::
 
-    $ ./bin/framediff.py --grid-count replay
+    $ ./bin/motion_framediff.py --grid-count replay
 
   Which just prints the number of jobs it requires for the grid execution.
 
@@ -191,10 +191,10 @@ quantities that are required for the detection process. To reproduce the
 results in the paper, we accumulate the results in windows of 20 frames,
 without overlap::
 
-  $ ./bin/diffcluster.py results/framediff results/quantities replay
+  $ ./bin/motion_diffcluster.py results/framediff results/quantities replay
 
-There are more options for the `diffcluster.py` script you can use (such as the
-sub-protocol selection). Just type `--help` at the command line for
+There are more options for the `motion_diffcluster.py` script you can use (such
+as the sub-protocol selection). Just type `--help` at the command line for
 instructions.
 
 .. note::
@@ -202,14 +202,14 @@ instructions.
   This job is very fast and normally does not require parallelization. You can
   still do it with::
 
-    $ ./bin/jman submit --array=1200 ./bin/diffcluster.py results/framediff results/quantities replay
+    $ ./bin/jman submit --array=1200 ./bin/motion_diffcluster.py results/framediff results/quantities replay
 
 Training an MLP
 ===============
 
 Training MLPs to perform discrimination should go like this::
 
-  $ ./bin/rproptrain.py --verbose --epoch=10000 --batch-size=500 --no-improvements=1000000 --maximum-iterations=10000000 results/quantities mlp
+  $ ./bin/motion_rproptrain.py --verbose --epoch=10000 --batch-size=500 --no-improvements=1000000 --maximum-iterations=10000000 results/quantities results/mlp replay
 
 This will create a new MLP and train it using the data produced by the
 "clustering" step. The training can take anywhere from 20 to 30 minutes (or
@@ -229,16 +229,18 @@ output with the partial results as the training go along::
   20000: New valley stop threshold set to 7.4974e-01
 
 The resulting MLP will be saved in the output directory called
-``mlp``. The resulting directory will also contain performance
+``results/mlp``. The resulting directory will also contain performance
 analysis plots. The results derived after this step are equivalent to the
 results shown at Table 2 and Figure 3 at the paper.
 
 To get results for specific supports as shown at the first two lines of Table
 2, just select the support using the ``--support=hand`` or ``--support=fixed``
-as a flag to ``rproptrain.py``. At this point, it is adviseable to use
+as a flag to ``motion_rproptrain.py``. Place this flags **after** the keyword
+``replay`` at the command line. At this point, it is adviseable to use
 different output directories using the ``--output-dir`` flag as well. If you
 need to modify or regenerate Figure 3 at the paper, just look at
-`antispoofing/ml/perf.py`, which contains all plotting and analysis routines.
+``antispoofing/motion/ml/perf.py``, which contains all plotting and analysis
+routines.
 
 .. note::
 
@@ -251,30 +253,15 @@ need to modify or regenerate Figure 3 at the paper, just look at
   To execute this script in the grid environment, just set the output directory
   to depend on the SGE_TASK_ID environment variable::
 
-    $ ./bin/jman --array=10 ./bin/rproptrain.py --verbose --epoch=10000 --batch-size=500 --no-improvements=1000000 --maximum-iterations=10000000 results/quantities 'mlp.%(SGE_TASK_ID)s'
-
-Running the Time Analysis
-=========================
-
-The time analysis is the end of the processing chain, it fuses the scores of
-instantaneous MLP outputs to give out a better estimation of attacks and
-real-accesses. To use it::
-
-  $ ./bin/time_analysis.py network-directory
-
-The 3 curves on Figure 4 at the paper relate to the different support types.
-Just repeat the procedure for every system trained with data for a particular
-support (equivalent for then entries in Table 2). The output for this script is
-dumped in PDF (plot) and text (``.rst`` file) on the directory containing the
-matching neural net you passed as input parameter.
+    $ ./bin/jman --array=10 ./bin/motion_rproptrain.py --verbose --epoch=10000 --batch-size=500 --no-improvements=1000000 --maximum-iterations=10000000 results/quantities 'results/mlp.%(SGE_TASK_ID)s' replay
 
 Dumping MLP Scores
 ==================
 
-You can dump the scores for every input file in the ``clustered`` directory
-using the ``make_scores.py`` script::
+You should now dump the scores for every input file in the
+``results/quantities`` directory using the ``motion_make_scores.py`` script::
 
-  $ ./bin/make_scores.py network-directory scores
+  $ ./bin/motion_make_scores.py --verbose results/quantities results/mlp/mlp.hdf5 results/mlp-scores replay
 
 This should give you the detailed output of the MLP for every input file in the
 training, development and test sets. You can use these score files in your
@@ -288,6 +275,22 @@ own score analysis routines, for example.
   face was detected on such a frame or that the motion-detection procedure
   decided to skip (on user configuration) the analysis of that frame.
 
+Running the Time Analysis
+=========================
+
+The time analysis is the end of the processing chain, it fuses the scores of
+instantaneous outputs to give out a better estimation of attacks and
+real-accesses **for a set of frames**. To use it::
+
+  $ ./bin/motion_time_analysis.py --verbose results/mlp-scores results/mlp-time replay
+
+The 3 curves on Figure 4 at the paper relate to the different support types.
+Just repeat the procedure for every system trained with data for a particular
+support (equivalent for then entries in Table 2). To set the support use
+``--help`` after the keyword ``replay`` on the command-line above to find out
+how to specify the support to this program. The output for this script is
+dumped in PDF (plot) and text (``.rst`` file) on the specified directory.
+
 Merging Scores
 ==============
 
@@ -296,7 +299,7 @@ If you wish to create a single `5-column format file
 by combining this counter-measure scores for every video into a single file
 that can be fed to external analysis utilities such as our
 `antispoofing.evaluation <http://pypi.python.org/pypi/antispoofing.evaluation>`
-package, you should use the script ``merge_scores.py``. You will have to
+package, you should use the script ``motion_merge_scores.py``. You will have to
 specify how many of the scores in every video you will want to average and the
 input directory containing the scores files that will be merged. 
 
@@ -304,10 +307,10 @@ The output of the program consists of three 5-column formatted files with the
 client identities and scores for **every video** in the input directory. A line
 in the output file corresponds to a video from the database.
 
-You run this program on the output of ``make_scores.py``. So, it should look
-like this if you followed the previous example::
+You run this program on the output of ``motion_make_scores.py``. So, it should
+look like this if you followed the previous example::
 
-  $ ./bin/merge_scores.py scores/train
+  $ ./bin/motion_merge_scores.py scores/train
 
 The above commandline examples will generate 3 files containing the training,
 development and test scores, accumulated over each video in the respective

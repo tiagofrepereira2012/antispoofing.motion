@@ -10,28 +10,18 @@ import os
 import bob
 import numpy
 
-def eval_threshold(machfile, datadir, db, minhter, verbose):
+def scores(flist):
+  d = bob.io.load(flist)
+  return d[~numpy.isnan(d.sum(axis=1)),:]
+
+def eval_threshold(real, attack, minhter, verbose):
   """Evaluates the optimal threshold for a given MLP/dataset"""
   
   if verbose: 
     print "Establishing optimal separation threshold at development set..."
 
-  data = {
-      'train': dict(zip(('real', 'attack'), db.get_train_data())),
-      'devel': dict(zip(('real', 'attack'), db.get_devel_data())),
-      'test' : dict(zip(('real', 'attack'), db.get_test_data())),
-      }
-
-  data = pack.replay([datadir], protocol, support, groups=('devel',),
-    cls=('attack','real'))
-
-  real = data['devel']['real']
-  attack = data['devel']['attack']
-  machine = bob.machine.MLP(bob.io.HDF5File(machfile))
-
-  # pass the input data through the machine
-  real_scores = machine(real)
-  attack_scores = machine(attack)
+  real_scores = scores(real)
+  attack_scores = scores(attack)
 
   if minhter:
     thres = bob.measure.min_hter_threshold(attack_scores[:,0], real_scores[:,0])
@@ -42,18 +32,13 @@ def eval_threshold(machfile, datadir, db, minhter, verbose):
 
   return thres
 
-def scores(filename, machine):
-  """Returns a vector of scores given a certain filename and a machine"""
-  data = bob.io.load(filename)
-  return machine(data)[:,0]
-
 def apply_threshold (value, threshold):
   """Applies a threshold against a certain value"""
-
+  if numpy.isnan(value): return numpy.nan
   if value < threshold: return -1.
   return +1.
   
-def threshold_scores(filename, machine, threshold):
+def threshold_scores(filename, threshold):
   """Returns a vector of decisions given a certain filename, machine and the 
   threshold. These decisions are integers: -1 if it is an attack, 1 if it is a
   real access.
@@ -61,8 +46,8 @@ def threshold_scores(filename, machine, threshold):
   if score < threshold => is attack, set -1
   if scores >= threshold => is real-access, set +1
   """
-  output = scores(filename, machine)
-  return numpy.array([apply_threshold(data[k], threshold) for k in range(data.shape[0])])
+  output = bob.io.load(filename)
+  return numpy.array([apply_threshold(k, threshold) for k in output])
 
 def average_scores(score, time):
   """Compacts an input vector of decisions into a single value averaging the
@@ -72,9 +57,12 @@ def average_scores(score, time):
 def thresholded_running_average(score):
   """Returns a new vector with decisions based on the running average of the
   input scores"""
-  return [apply_threshold(score[:(k+1)].mean(),0) for k in range(score.size)]
+  retval = numpy.copy(score)
+  good = score[~numpy.isnan(score)]
+  retval[~numpy.isnan(score)] = [apply_threshold(good[:(k+1)].mean(),0) for k in range(good.size)]
+  return retval
 
-def decisions(data, machine, threshold, average=False, verbose=False):
+def decisions(data, threshold, average=False, verbose=False):
   """Returns a list of booleans (-1, +1) indicating the decisions through time
   for all input data.
   """
@@ -82,18 +70,18 @@ def decisions(data, machine, threshold, average=False, verbose=False):
   decisions = []
   for filename in data:
     if verbose: print "Scoring file %s..." % filename
-    S = scores(filename, machine)
+    S = bob.io.load(filename)
     if not average: #threshold before
       S = numpy.array([apply_threshold(S[k], threshold) \
           for k in range(S.size)])
     decisions.append(thresholded_running_average(S))
   return decisions
 
-def frfa_list(real, attack, machine, threshold, average=False, verbose=False):
+def frfa_list(real, attack, threshold, average=False, verbose=False):
   """Returns a list composed of the false rejections and false accepts"""
 
-  real_decisions = decisions(real, machine, threshold, average, verbose)
-  attack_decisions = decisions(attack, machine, threshold, average, verbose)
+  real_decisions = decisions(real, threshold, average, verbose)
+  attack_decisions = decisions(attack, threshold, average, verbose)
 
   # It only makes sense to analyze up to the smallest clip size...
   maxtime = min([len(k) for k in real_decisions] + \
@@ -104,10 +92,10 @@ def frfa_list(real, attack, machine, threshold, average=False, verbose=False):
   for k in range(0, maxtime):
     fr_k = [] #false rejections for k=k
     for i, rd in enumerate(real_decisions):
-      if rd[k] < 0: fr_k.append(real[i])
+      if not numpy.isnan(rd[k]) and rd[k] < 0: fr_k.append(real[i])
     fa_k = [] #false accepts for k=k
     for i, ad in enumerate(attack_decisions):
-      if ad[k] >= 0: fa_k.append(attack[i])
+      if not numpy.isnan(ad[k]) and ad[k] >= 0: fa_k.append(attack[i])
     fr.append(fr_k)
     fa.append(fa_k)
 
@@ -121,17 +109,17 @@ def instantaneous_decisions(data, machine, threshold, verbose=False):
   decisions = []
   for filename in data:
     if verbose: print "Scoring file %s..." % filename
-    S = scores(filename, machine)
+    S = scores(filename)
     S = [apply_threshold(S[k], threshold) for k in range(S.size)]
     decisions.append(S)
   return decisions
 
-def instantaneous_frfa_list(real, attack, machine, threshold, verbose=False):
+def instantaneous_frfa_list(real, attack, threshold, verbose=False):
   """Returns a list composed of the false rejections and false accepts for
   every instant w/o taking into consideration previous decisions."""
 
-  real_decisions = instantaneous_decisions(real, machine, threshold, verbose)
-  attack_decisions = instantaneous_decisions(attack, machine, threshold, verbose)
+  real_decisions = instantaneous_decisions(real, threshold, verbose)
+  attack_decisions = instantaneous_decisions(attack, threshold, verbose)
 
   # It only makes sense to analyze up to the smallest clip size...
   maxtime = min([len(k) for k in real_decisions] + \
@@ -142,10 +130,10 @@ def instantaneous_frfa_list(real, attack, machine, threshold, verbose=False):
   for k in range(0, maxtime):
     fr_k = [] #false rejections for k=k
     for i, rd in enumerate(real_decisions):
-      if rd[k] < 0: fr_k.append(real[i])
+      if not numpy.isnan(rd[k]) and rd[k] < 0: fr_k.append(real[i])
     fa_k = [] #false accepts for k=k
     for i, ad in enumerate(attack_decisions):
-      if ad[k] >= 0: fa_k.append(attack[i])
+      if not numpy.isnan(ad[k]) and ad[k] < 0: fa_k.append(attack[i])
     fr.append(fr_k)
     fa.append(fa_k)
 
@@ -154,20 +142,18 @@ def instantaneous_frfa_list(real, attack, machine, threshold, verbose=False):
 class Analyzer:
   """A class that conducts full time analysis on a set of values"""
 
-  def __init__(self, real_files, attack_files, machfile, threshold,
+  def __init__(self, real_files, attack_files, threshold,
       windowsize, overlap, average, verbose):
     """Initializes the analyzer with the real and attack files for a
-    specific protocol, runs the base analysis using the machine and the
-    given threshold. If average is set, use score averaging instead of
-    instantaneous thresholding.
+    specific protocol, runs the base analysis using the given threshold. If
+    average is set, use score averaging instead of instantaneous thresholding.
     """
   
     if verbose: print "Running the time analysis..."
-    machine = bob.machine.MLP(bob.io.HDF5File(machfile))
 
     # calculates the instantaneous lists
     (fr, fa) = instantaneous_frfa_list(real_files, attack_files,
-        machine, threshold, verbose)
+        threshold, verbose)
 
     self.instd = {}
 
@@ -183,7 +169,7 @@ class Analyzer:
 
     # calculates the averaged lists
     (fr, fa) = frfa_list(real_files, attack_files,
-        machine, threshold, average, verbose)
+        threshold, average, verbose)
 
     self.d = {}
 
