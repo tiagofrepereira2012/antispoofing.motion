@@ -39,6 +39,7 @@ setup(
         'motion_framediff.py = antispoofing.motion.script.framediff:main',
         'motion_diffcluster.py = antispoofing.motion.script.diffcluster:main',
         'motion_rproptrain.py = antispoofing.motion.script.rproptrain:main',
+        'motion_ldatrain.py = antispoofing.motion.script.ldatrain:main',
         'motion_time_analysis.py = antispoofing.motion.script.time_analysis:main',
         'motion_make_scores.py = antispoofing.motion.script.make_scores:main',
         'motion_merge_scores.py = antispoofing.motion.script.merge_scores:main',

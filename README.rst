@@ -45,10 +45,13 @@ work with the whole of the `the REPLAY-ATTACK database
 <https://www.idiap.ch/dataset/replayattack>`_, which is a super-set of the
 PRINT-ATTACK database. You are allowed to select protocols in each of the
 applications described in this manual. To generate the results for the paper,
-just select `print` as protocol option where necessary.
+just select `print` as protocol option where necessary. Detailed comments about
+specific results or tables are given where required.
 
 The data used in the paper is publicly available and should be downloaded and
-installed **prior** to try using the programs described in this package.
+installed **prior** to try using the programs described in this package. The
+root directory of the database installation is used by the first program in the
+Antispoofing-Motion toolchain.
 
 Installation
 ------------
@@ -204,6 +207,31 @@ instructions.
 
     $ ./bin/jman submit --array=1200 ./bin/motion_diffcluster.py results/framediff results/quantities replay
 
+Training with Linear Discriminant Analysis (LDA)
+================================================
+
+Training a linear machine to perform LDA should go like this::
+
+  $ ./bin/motion_ldatrain.py --verbose results/quantities results/lda replay
+
+This will create a new linear machine train it using the training data.
+Evaluation based on the EER on the development set will be performed by the end
+of the training::
+
+  Performance evaluation:
+   -> EER @ devel set threshold: 8.11125e-02
+   -> Devel set results:
+       * FAR : 16.204% (175/1080)
+       * FRR : 16.174% (558/3450)
+       * HTER: 16.189%
+   -> Test set results:
+       * FAR: 16.389% (236/1440)
+       * FRR: 18.641% (856/4592)
+       * HTER: 17.515%
+
+The resulting linear machine will be saved in the output directory called
+``results/lda``.
+
 Training an MLP
 ===============
 
@@ -255,16 +283,17 @@ routines.
 
     $ ./bin/jman --array=10 ./bin/motion_rproptrain.py --verbose --epoch=10000 --batch-size=500 --no-improvements=1000000 --maximum-iterations=10000000 results/quantities 'results/mlp.%(SGE_TASK_ID)s' replay
 
-Dumping MLP Scores
-==================
+Dumping Machine (MLP or LDA) Scores
+===================================
 
 You should now dump the scores for every input file in the
-``results/quantities`` directory using the ``motion_make_scores.py`` script::
+``results/quantities`` directory using the ``motion_make_scores.py`` script,
+for example, to dump scores produced with by an MLP::
 
   $ ./bin/motion_make_scores.py --verbose results/quantities results/mlp/mlp.hdf5 results/mlp-scores replay
 
-This should give you the detailed output of the MLP for every input file in the
-training, development and test sets. You can use these score files in your
+This should give you the detailed output of the machine for every input file in
+the training, development and test sets. You can use these score files in your
 own score analysis routines, for example.
 
 .. note::
@@ -280,7 +309,8 @@ Running the Time Analysis
 
 The time analysis is the end of the processing chain, it fuses the scores of
 instantaneous outputs to give out a better estimation of attacks and
-real-accesses **for a set of frames**. To use it::
+real-accesses **for a set of frames**. You can used with the scores output by
+MLPs or linear machines (LDA training). To use it, write something like::
 
   $ ./bin/motion_time_analysis.py --verbose results/mlp-scores results/mlp-time replay
 
