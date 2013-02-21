@@ -17,20 +17,20 @@ publications:
       keywords = {Attack, Counter-Measures, Counter-Spoofing, Disguise, Dishonest Acts, Face Recognition, Face Verification, Forgery, Liveness Detection, Replay, Spoofing, Trick},
       month = oct,
       title = {Counter-Measures to Photo Attacks in Face Recognition: a public database and a baseline},
-      journal = {International Joint Conference on Biometrics 2011},
+      booktitle = {International Joint Conference on Biometrics 2011},
       year = {2011},
-      pdf = {http://publications.idiap.ch/downloads/papers/2011/Anjos_IJCB_2011.pdf}
+      url = {http://publications.idiap.ch/downloads/papers/2011/Anjos_IJCB_2011.pdf}
     }
 
 2. Bob as the core framework used to run the experiments::
 
     @inproceedings{Anjos_ACMMM_2012,
-        author = {A. Anjos AND L. El Shafey AND R. Wallace AND M. G\"unther AND C. McCool AND S. Marcel},
-        title = {Bob: a free signal processing and machine learning toolbox for researchers},
-        year = {2012},
-        month = oct,
-        booktitle = {20th ACM Conference on Multimedia Systems (ACMMM), Nara, Japan},
-        publisher = {ACM Press},
+      author = {A. Anjos and L. El Shafey and R. Wallace and M. G\"unther and C. McCool and S. Marcel},
+      title = {Bob: a free signal processing and machine learning toolbox for researchers},
+      year = {2012},
+      month = oct,
+      booktitle = {20th ACM Conference on Multimedia Systems (ACMMM), Nara, Japan},
+      publisher = {ACM Press},
     }
 
 If you wish to report problems or improvements concerning this code, please
