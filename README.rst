@@ -31,6 +31,20 @@ publications:
       month = oct,
       booktitle = {20th ACM Conference on Multimedia Systems (ACMMM), Nara, Japan},
       publisher = {ACM Press},
+      url = {http://publications.idiap.ch/downloads/papers/2012/Anjos_Bob_ACMMM12.pdf},
+    }
+
+3. If you decide to use the REPLAY-ATTACK database, you should also mention the
+   following paper, where it is introduced::
+
+    @inproceedings{Chingovska_BIOSIG_2012,
+      author = {Chingovska, Ivana and Anjos, Andr{\'{e}} and Marcel, S{\'{e}}bastien},
+      keywords = {Attack, Counter-Measures, Counter-Spoofing, Face Recognition, Liveness Detection, Replay, Spoofing},
+      month = sep,
+      title = {On the Effectiveness of Local Binary Patterns in Face Anti-spoofing},
+      booktitle = {IEEE Biometrics Special Interest Group},
+      year = {2012},
+      url = {http://publications.idiap.ch/downloads/papers/2012/Chingovska_IEEEBIOSIG2012_2012.pdf},
     }
 
 If you wish to report problems or improvements concerning this code, please
@@ -120,13 +134,13 @@ get you a fully operational test and development environment.
   consider it uses the default python interpreter. In this case, the above 3
   command lines should work as expected. If you have Bob installed somewhere
   else on a private directory, edit the file ``buildout.cfg`` **before**
-  running ``./bin/buildout``. Find the section named ``external`` and edit the
-  line ``egg-directories`` to point to the ``lib`` directory of the Bob
-  installation you want to use. For example::
+  running ``./bin/buildout``. Find the section named ``buildout`` and edit or
+  add the line ``prefixes`` to point to the directory where Bob is installed or
+  built. For example::
 
-    [external]
-    recipe = xbob.buildout:external
-    egg-directories=/Users/crazyfox/work/bob/build/lib
+    [buildout]
+    ...
+    prefixes=/Users/crazyfox/work/bob/build
 
 User Guide
 ----------
