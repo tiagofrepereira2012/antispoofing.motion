@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 setup(
 
     name='antispoofing.motion',
-    version='1.1.0a0',
+    version='1.1.0',
     description='Motion counter-measures for the REPLAY-ATTACK database',
     url='http://pypi.python.org/pypi/antispoofing.motion',
     license='GPLv3',
