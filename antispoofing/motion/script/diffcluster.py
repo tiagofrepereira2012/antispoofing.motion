@@ -92,8 +92,7 @@ def main():
 
     sys.stdout.write("Processing file %s [%d/%d] " % (obj.make_path(args.inputdir, '.hdf5'), counter, len(process)))
 
-    input = obj.load(args.inputdir, '.hdf5')
-    
+    input = obj.load(args.inputdir, '.hdf5')    
     d_face = cluster_5quantities(input[:,0], args.window_size, args.overlap)
     d_bg   = cluster_5quantities(input[:,1], args.window_size, args.overlap)
     

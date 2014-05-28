@@ -11,6 +11,16 @@ Marcel, IJCB'11."""
 import os, sys
 import argparse
 
+def compute_lbp(img):
+  import bob
+  import numpy
+  
+  lbp = bob.ip.LBP(neighbors=8, uniform=True, circular=False, radius=1, to_average=False, elbp_type=bob.ip.ELBPType.REGULAR)
+  lbpimage = numpy.ndarray(lbp.get_lbp_shape(img), 'uint16') # allocating the image with lbp codes
+  lbp(img, lbpimage) # calculating the lbp image
+  return lbpimage
+
+
 def main():
   
   import bob
@@ -94,8 +104,8 @@ def main():
 
       if locations[k] and locations[k].is_valid():
         sys.stdout.write('.')
-        data[k][0] = eval_face_differences(prev, curr, locations[k])
-        data[k][1] = eval_background_differences(prev, curr, locations[k], None)
+        data[k][0] = eval_face_differences(compute_lbp(prev), compute_lbp(curr), locations[k])
+        data[k][1] = eval_background_differences(compute_lbp(prev), compute_lbp(curr), locations[k], None)
       else:
         sys.stdout.write('x')
         data[k] = (numpy.NaN, numpy.NaN)

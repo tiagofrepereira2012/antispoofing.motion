@@ -243,12 +243,14 @@ def make_mlp(train, devel, batch_size, nhidden, epoch, max_iter=0,
 
   shape = (shuffler.data_width, nhidden, 1)
   machine = bob.machine.MLP(shape)
-  machine.activation = bob.machine.Activation.TANH
+  #machine.activation = bob.machine.Activation.TANH
+  machine.activation = bob.machine.HyperbolicTangentActivation()
   machine.randomize()
   machine.input_subtract, machine.input_divide = shuffler.stdnorm()
 
-  trainer = bob.trainer.MLPRPropTrainer(machine, batch_size)
-  trainer.trainBiases = True
+  #trainer = bob.trainer.MLPRPropTrainer(machine, batch_size)
+  trainer = bob.trainer.MLPRPropTrainer(batch_size, bob.trainer.SquareError(machine.output_activation), machine, True)
+  #trainer.trainBiases = True
 
   continue_training = True
   iteration = 0

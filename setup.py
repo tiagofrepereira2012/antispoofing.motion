@@ -31,6 +31,7 @@ setup(
       "setuptools",
       "bob >= 1.1.0",
       "xbob.db.replay",
+      "xbob.db.casia_fasd",
     ],
 
     entry_points={
